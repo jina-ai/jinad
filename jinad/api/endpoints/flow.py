@@ -1,12 +1,13 @@
 import uuid
-from typing import List
-
+from ruamel.yaml import YAML
 from jina.flow import Flow
 from jina.clients import py_client
 from jina.excepts import GRPCServerError
-from fastapi import APIRouter, HTTPException, Response
+from typing import List, Union, Optional
+from fastapi import APIRouter, Body, Response
 
-from models.pod import PodBase
+from models.pod import PodBase, PodBaseExample, PodContainer
+from excepts import FlowYamlParseException, HTTPException
 from logger import get_logger
 
 logger = get_logger(context='flow-api')
@@ -15,13 +16,26 @@ flow_dict = {}
 
 
 class FlowWrapper:
-    def __init__(self, pods: List[PodBase]):
-        self.f = Flow()
-        self.pods = pods
-        self.build()
-        self.start()
+    def __init__(self, 
+                 pods: List[PodBase] = None,
+                 yaml_spec=None):
+        if pods:
+            self.f = Flow()
+            self.pods = pods
+            self._build_with_pods()
         
-    def build(self):
+        if yaml_spec:
+            yaml = YAML()
+            yaml.register_class(Flow)
+            try:
+                self.f = yaml.load(yaml_spec)
+            except Exception as e:
+                logger.error(f'Got error while loading from yaml {e}')
+                raise FlowYamlParseException
+        
+        self.start()
+
+    def _build_with_pods(self):
         for pod in self.pods:
             self.f = self.f.add(
                 name=pod.name,
@@ -44,11 +58,28 @@ async def startup():
     path='/flow',
     summary='Build & start a flow using Pods'
 )
-def flow_init(pods: List[PodBase]):
+def flow_init(
+    config: Union[List[PodBase], str] = Body(..., example=PodBaseExample)
+):
     global flow_dict
-    flow_wrapper = FlowWrapper(pods=pods)
+
+    if isinstance(config, str):
+        try:
+            flow_wrapper = FlowWrapper(yaml_spec=config)
+        except FlowYamlParseException:
+            raise HTTPException(status_code=404,
+                                detail=f'Invalid yaml file.')
+        except Exception as e:
+            logger.error(f'Got error while loading yaml file {e}')
+            raise HTTPException(status_code=404,
+                                detail=f'Invalid yaml file.')
+
+    if isinstance(config, list):
+        flow_wrapper = FlowWrapper(pods=config)
+    
     flow_id = uuid.uuid1()
     flow_dict[flow_id] = flow_wrapper
+
     return {
         'status_code': 200,
         'flow_id': flow_id,
@@ -62,7 +93,10 @@ def flow_init(pods: List[PodBase]):
     path='/flow/{flow_id}',
     summary='Get flow from flow id'    
 )
-async def fetch_flow(flow_id: uuid.UUID, yaml_only: bool = False):
+async def fetch_flow(
+    flow_id: uuid.UUID, 
+    yaml_only: bool = False
+):
     global flow_dict
     try:
         flow_wrapper = flow_dict[flow_id]
@@ -85,7 +119,10 @@ async def fetch_flow(flow_id: uuid.UUID, yaml_only: bool = False):
     path='/ping',
     summary='Check grpc connection'
 )
-def ping_checker(host: str, port: int):
+def ping_checker(
+    host: str, 
+    port: int
+):
     try:
         py_client(port_expose=port, 
                   host=host)
@@ -102,7 +139,9 @@ def ping_checker(host: str, port: int):
     path='/flow',
     summary='Delete flow'
 )
-def destroy_flow(flow_id: uuid.UUID):
+def destroy_flow(
+    flow_id: uuid.UUID
+):
     global flow_dict
     try:
         flow_wrapper = flow_dict[flow_id]
