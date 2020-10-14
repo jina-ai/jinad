@@ -1,6 +1,4 @@
 jina
 fastapi
-uvicorn
 hypercorn
 pydantic
-fastapi-utils
