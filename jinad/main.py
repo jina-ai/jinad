@@ -7,7 +7,7 @@ from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
 from api.endpoints import flow, remotepod
-from .config import fastapi_config, hypercorn_config
+from config import fastapi_config, hypercorn_config
 
 
 def main(invocation: str = 'flow'):
@@ -24,11 +24,11 @@ def main(invocation: str = 'flow'):
     )
     
     if invocation == 'flow':
-        app.include_router(router=flow.router, 
-                           prefix=fastapi_config.VERSION)
+        app.include_router(router=flow.router)
+                        #    prefix=fastapi_config.VERSION)
     elif invocation == 'pod':
-        app.include_router(router=remotepod.router, 
-                           prefix=fastapi_config.VERSION)
+        app.include_router(router=remotepod.router)
+                        #    prefix=fastapi_config.VERSION)
     
     hc_serve(f_app=app)
 
