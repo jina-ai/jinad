@@ -1,0 +1,4 @@
+jina
+fastapi
+hypercorn
+pydantic
