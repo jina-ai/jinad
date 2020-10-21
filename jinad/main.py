@@ -7,7 +7,7 @@ from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
 from api.endpoints import flow, remotepod
-from config import fastapi_config, hypercorn_config
+from config import fastapi_config, hypercorn_config, openapitags_config
 
 
 def main(invocation: str = 'flow'):
@@ -16,17 +16,19 @@ def main(invocation: str = 'flow'):
     Args:
         invocation (str, optional): app to point to flow/pod router. Defaults to 'flow'.
     """
-    
+
     app = FastAPI(
         title=fastapi_config.NAME,
         description=fastapi_config.DESCRIPTION,
-        version=fastapi_config.VERSION
+        version=fastapi_config.VERSION,
     )
     
     if invocation == 'flow':
+        app.openapi_tags = openapitags_config.FLOW_API_TAGS
         app.include_router(router=flow.router)
                         #    prefix=fastapi_config.VERSION)
     elif invocation == 'pod':
+        app.openapi_tags = openapitags_config.POD_API_TAGS
         app.include_router(router=remotepod.router)
                         #    prefix=fastapi_config.VERSION)
     

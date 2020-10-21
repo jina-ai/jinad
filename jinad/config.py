@@ -6,6 +6,29 @@ class FastAPIConfig(BaseSettings):
     DESCRIPTION: str = 'REST API for creating/deleting Jina Flow'
     VERSION: str = '0.1.0'
     PREFIX: str = '/v1'
+    
+
+class OpenAPITags(BaseSettings):
+    FLOW_API_TAGS: list = [{
+        "name": "Flow Manager",
+        "description": "API to invoke local/remote Flows",
+        "externalDocs": {
+            "description": "Jina Flow Context Manager",
+            "url": "https://docs.jina.ai/chapters/flow/index.html",
+        },
+    }]
+    POD_API_TAGS: list = [{
+        "name": "Remote Pod Manager",
+        "description": "API to invoke remote Pods (__should be used by Flow APIs only__)",
+        "externalDocs": {
+            "description": "Jina 101",
+            "url": "https://docs.jina.ai/chapters/101/.sphinx.html",
+        },
+    }]
+    LOG_API_TAGS: list = [{
+        "name": "logs",
+        "description": "Endpoint to get streaming logs from flows/pods",
+    }]
 
 
 class HypercornConfig(BaseSettings):
@@ -15,3 +38,4 @@ class HypercornConfig(BaseSettings):
 
 fastapi_config = FastAPIConfig()
 hypercorn_config = HypercornConfig()
+openapitags_config = OpenAPITags()
