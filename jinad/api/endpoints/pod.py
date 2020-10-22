@@ -1,21 +1,19 @@
 import uuid
-from argparse import Namespace
 from typing import Dict
-from fastapi import status, APIRouter, Body, Response
-from fastapi.responses import StreamingResponse
-from logger import get_logger
-
 from jina.peapods.pod import MutablePod
-from jina.enums import PeaRoleType, SchedulerType, OnErrorSkip, SocketType
+from fastapi import status, APIRouter, Body
+from fastapi.responses import StreamingResponse
 
-from models.pod import PodModel, RemotePodModel
-from config import openapitags_config
+from logger import get_logger
+from models.pod import PodModel
 from excepts import HTTPException
+from config import openapitags_config
 
+
+TAG = openapitags_config.POD_API_TAGS[0]['name']
 logger = get_logger(context='pod-context')
 router = APIRouter()
 pod_dict = {}
-TAG = openapitags_config.POD_API_TAGS[0]['name']
 
 
 @router.on_event('startup')
@@ -40,42 +38,28 @@ async def _create(
     """
     global pod_dict
     
-    def value_to_enum(d):
-        # TODO: hardcoding to be removed using cli parser
-        for key, value in d.items():
-            if value is not None:
-                if key == 'log_config':
-                    d[key] = None
-                if key == 'role':
-                    d[key] = PeaRoleType(value)
-                if key == 'scheduling':
-                    d[key] = SchedulerType(value)
-                if key == 'skip_on_error':
-                    d[key] = OnErrorSkip(value)
-                if key in ['socket_in', 'socket_out']:
-                    d[key] = SocketType(value)
-        return d
-    
     def dict_to_namespace(args: Dict):
+        from jina.parser import set_pod_parser
+        parser = set_pod_parser()
         pod_args = {}
+        
         for pea_type, pea_args in args.items():
             # this is for pea_type: head & tail when None
             if pea_args is None:
                 pod_args[pea_type] = None
             
-            # this is for pea_type: head & tail
+            # this is for pea_type: head & tail when not None
             if isinstance(pea_args, dict):
-                pea_args = value_to_enum(pea_args)
-                pod_args[pea_type] = Namespace(**pea_args)
+                pea_args, _ = parser.parse_known_intermixed_args(pea_args)
+                pod_args[pea_type] = pea_args
             
-            # this is for pea_type: peas
+            # this is for pea_type: peas (multiple entries)
             if isinstance(pea_args, list):
                 pod_args[pea_type] = []
-                for _ in pea_args:
-                    _ = value_to_enum(_)
-                    pod_args[pea_type].extend([Namespace(**_)])
-                
-                # pod_args[pea_type].extend([Namespace(**_) for _ in pea_args]) 
+                for i in pea_args:
+                    _parsed, _ = parser.parse_known_intermixed_args(i)
+                    pod_args[pea_type].append(_parsed)
+
         return pod_args
     
     pod_arguments = dict_to_namespace(pod_arguments)
