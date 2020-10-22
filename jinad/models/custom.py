@@ -5,12 +5,14 @@ JINA_API_URL = 'https://api.jina.ai/latest'
 
 
 def get_latest_api():
+    """Fetches the latest jina cli args"""
     response = requests.get('https://api.jina.ai/latest')
     all_cli_args = response.json()
     return all_cli_args
 
 
 def get_module_args(all_args: list, module: str):
+    """Fetches the cli args for modules like `flow`, `pod`"""
     for current_module in all_args['methods']:
         if current_module['name'] == module:
             module_args = current_module
@@ -18,6 +20,7 @@ def get_module_args(all_args: list, module: str):
 
     
 def generate_validator(field: str, choices: list):
+    """ Pydantic validator classmethod generator to validate fields exist in choices """
     def validate_arg_choices(v, values):
         if v not in choices:
             raise ValueError(f'Invalid value {v} for field {field}'
@@ -29,6 +32,7 @@ def generate_validator(field: str, choices: list):
 
 
 def get_pydantic_fields(module_args: dict):
+    """ Creates Pydantic fields from cli args """
     all_options = {}
     choices_validators = {}
     
@@ -65,6 +69,7 @@ class PydanticConfig:
 
 
 def build_pydantic_model(model_name: str = 'CustomModel', module: str = 'pod'):
+    """ Dynamic Pydantic model creator from jina cli args """
     all_cli_args = get_latest_api()
     module_args = get_module_args(all_args=all_cli_args,
                                   module=module)
