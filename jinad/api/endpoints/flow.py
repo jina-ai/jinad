@@ -1,24 +1,32 @@
 import uuid
+import json
 from ruamel.yaml import YAML
-from jina.flow import Flow
+from typing import List, Union, Optional
+from fastapi import status, APIRouter, Body, Response, WebSocket
+
+from jina import __default_host__
+from jina.peapods.pod import FlowPod
 from jina.clients import py_client
 from jina.excepts import GRPCServerError
-from typing import List, Union, Optional
-from fastapi import APIRouter, Body, Response
 
-from models.pod import PodBase, PodBaseExample, PodContainer
+from config import openapitags_config
+from models.pod import PodModel
 from excepts import FlowYamlParseException, HTTPException
 from logger import get_logger
+from helper import Flow
 
 logger = get_logger(context='flow-api')
 router = APIRouter()
+TAG = openapitags_config.FLOW_API_TAGS[0]['name']
+# TODO: to be changed to a app level global context
+# fastapi recommends using global vars, will take inspiration from flask    
 flow_dict = {}
-
 
 class FlowWrapper:
     def __init__(self, 
-                 pods: List[PodBase] = None,
-                 yaml_spec=None):
+                 pods: List[PodModel] = None,
+                 yaml_spec: str = None):
+        # TODO: to be changed to ExitStack implementation
         if pods:
             self.f = Flow()
             self.pods = pods
@@ -39,7 +47,11 @@ class FlowWrapper:
         for pod in self.pods:
             self.f = self.f.add(
                 name=pod.name,
-                uses=pod.uses
+                uses=pod.uses,
+                host=pod.host,
+                port_expose=pod.port_expose,
+                timeout_ready=-1,
+                parallel=1
             )
         
     def start(self):
@@ -56,11 +68,41 @@ async def startup():
 
 @router.put(
     path='/flow',
-    summary='Build & start a flow using Pods'
+    summary='Build & start a flow using Pods',
+    tags=[TAG]
 )
-def flow_init(
-    config: Union[List[PodBase], str] = Body(..., example=PodBaseExample)
+def _create(
+    config: Union[List[PodModel], str] = Body(..., 
+                                              example=json.loads(PodModel().json()))
 ):
+    """
+    Used to enter a Flow context manager
+    
+    Accepts 
+        - A List of Pods
+        Example:
+        
+            ```
+            [   
+                {       
+                    "name": "pod1",
+                    "uses": "_pass"
+                },
+                {
+                    "name": "pod1",
+                    "uses": "_pass",
+                    "host": "10.18.3.127",
+                    "port_expose": 8000
+                }
+            ]
+            ```
+            
+        - Flow yaml
+        Example:
+            ```
+            To be added
+            ```
+    """
     global flow_dict
 
     if isinstance(config, str):
@@ -81,7 +123,7 @@ def flow_init(
     flow_dict[flow_id] = flow_wrapper
 
     return {
-        'status_code': 200,
+        'status_code': status.HTTP_200_OK,
         'flow_id': flow_id,
         'host': flow_wrapper.f.host,
         'port': flow_wrapper.f.port_expose,
@@ -91,35 +133,38 @@ def flow_init(
 
 @router.get(
     path='/flow/{flow_id}',
-    summary='Get flow from flow id'    
+    summary='Get flow from flow id',
+    tags=[TAG]  
 )
-async def fetch_flow(
+async def _fetch(
     flow_id: uuid.UUID, 
     yaml_only: bool = False
 ):
     global flow_dict
     try:
         flow_wrapper = flow_dict[flow_id]
-        yaml_spec = flow_wrapper.f.yaml_spec
-        if yaml_only:
-            return Response(content=yaml_spec,
-                            media_type='application/yaml')
+        # TODO: Fix - This fails with the inherited class
+        # yaml_spec = flow_wrapper.f.yaml_spec
+        # if yaml_only:
+        #     return Response(content=yaml_spec,
+        #                     media_type='application/yaml')
         return {
-            'status_code': 200,
-            'yaml': yaml_spec,
+            'status_code': status.HTTP_200_OK,
+            # 'yaml': yaml_spec,
             'host': flow_wrapper.f.host,
             'port': flow_wrapper.f.port_expose
         }
     except KeyError:
-        raise HTTPException(status_code=404,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'Flow ID {flow_id} not found! Please create a new Flow')
 
 
 @router.get(
     path='/ping',
-    summary='Check grpc connection'
+    summary='Check grpc connection',
+    tags=[TAG]
 )
-def ping_checker(
+def _ping(
     host: str, 
     port: int
 ):
@@ -127,19 +172,20 @@ def ping_checker(
         py_client(port_expose=port, 
                   host=host)
         return {
-            'status_code': 200,
+            'status_code': status.HTTP_200_OK,
             'detail': 'connected'
         }
     except GRPCServerError:
-        raise HTTPException(status_code=404,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'Cannot connect to GRPC Server on {host}:{port}')
 
 
 @router.delete(
     path='/flow',
-    summary='Delete flow'
+    summary='Delete flow',
+    tags=[TAG]
 )
-def destroy_flow(
+def _delete(
     flow_id: uuid.UUID
 ):
     global flow_dict
@@ -148,18 +194,29 @@ def destroy_flow(
         flow_wrapper.f.close()
         flow_dict.pop(flow_id)
         return {
-            'status_code': 200
+            'status_code': status.HTTP_200_OK
         }
     except KeyError:
-        raise HTTPException(status_code=404,
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'Flow ID {flow_id} not found! Please create a new Flow')
 
 
+@router.websocket(
+    path='/wslogs'
+)
+async def _websocket_logs(websocket: WebSocket):
+    # TODO: extend this to work with fluentd logs
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f'Message text: {data}')
+
+
 @router.on_event('shutdown')
-def shutdown():
+def _shutdown():
     global flow_dict
     if flow_dict:
-        for _id, flow in flow_dict:
-            logger.info(f'flow id {_id} still alive! Closing it!')
+        for flow_id, flow in flow_dict.copy().items():
+            logger.info(f'flow id `{flow_id}` still alive! Closing it!')
             flow.f.close()
-            flow_dict.pop(_id)
+            flow_dict.pop(flow_id)
