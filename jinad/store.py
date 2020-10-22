@@ -1,12 +1,12 @@
-from uuid import uuid4
-from typing import List
+import uuid
+from typing import List, Union
 from contextlib import contextmanager
 from ruamel.yaml import YAML
 from jina.flow import Flow
 
 from logger import get_logger
 from models.pod import PodModel
-from excepts import FlowYamlParseException
+from excepts import FlowYamlParseException, FlowCreationFailed
 
 
 class InMemoryFlowStore:
@@ -38,24 +38,26 @@ class InMemoryFlowStore:
     def _logout(self, token):
         self.logger.info(f'LOGOUT: {token}')
     
-    def _create(self, 
-                pods: List[PodModel] = None,
-                yaml_spec: str = None):
-        flow_id = uuid4()
-        
-        if pods:
-            f = Flow()
-            f = self._build_with_pods(flow=f, pods=pods)
-        
-        if yaml_spec:
+    def _create(self, config: Union[str, List[PodModel]] = None):
+        flow_id = uuid.uuid4()
+
+        if isinstance(config, str):
             yaml = YAML()
-            yaml.register_class(Flow)
             try:
-                f = yaml.load(yaml_spec)
+                yaml.register_class(Flow)
+                f = yaml.load(config)
             except Exception as e:
                 self.logger.error(f'Got error while loading from yaml {e}')
                 raise FlowYamlParseException
-        
+
+        if isinstance(config, list):
+            f = Flow()
+            try:
+                f = self._build_with_pods(flow=f, pods=config)
+            except Exception as e:
+                self.logger.error(f'Got error while creating flows via pods {e}')
+                raise FlowCreationFailed
+
         self._start(flow=f)
         self._store[flow_id] = f
         self.logger.info(f'Started flow with flow_id {flow_id}')

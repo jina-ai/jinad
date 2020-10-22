@@ -2,16 +2,13 @@ import uuid
 import json
 from ruamel.yaml import YAML
 from typing import List, Union, Optional
-from jina import __default_host__
-from jina.peapods.pod import FlowPod
 from jina.clients import py_client
-from jina.excepts import GRPCServerError
 from fastapi import status, APIRouter, Body, Response, WebSocket
 
 from logger import get_logger
 from models.pod import PodModel
 from store import flow_store
-from excepts import FlowYamlParseException, HTTPException
+from excepts import FlowYamlParseException, FlowCreationFailed, HTTPException, GRPCServerError
 from helper import Flow
 from config import openapitags_config
 
@@ -64,20 +61,17 @@ def _create(
             ```
     """
     with flow_store._session():
-        if isinstance(config, str):
-            try:
-                flow_id, host, port_expose = flow_store._create(yaml_spec=config)
-            except FlowYamlParseException:
-                raise HTTPException(status_code=404,
-                                    detail=f'Invalid yaml file.')
-            except Exception as e:
-                logger.error(f'Got error while loading yaml file {e}')
-                raise HTTPException(status_code=404,
-                                    detail=f'Invalid yaml file.')
-        
-        if isinstance(config, list):
-            flow_id, host, port_expose = flow_store._create(pods=config)    
-        
+        try:
+            flow_id, host, port_expose = flow_store._create(config=config)
+        except FlowYamlParseException:
+            raise HTTPException(status_code=404,
+                                detail=f'Invalid yaml file.')
+        except FlowCreationFailed:
+            raise HTTPException(status_code=404,
+                                detail=f'Bad pods args')
+        except Exception as e:
+            raise HTTPException(status_code=404,
+                                detail=f'Something went wrong')
     return {
         'status_code': status.HTTP_200_OK,
         'flow_id': flow_id,
