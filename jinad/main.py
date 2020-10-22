@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
-from api.endpoints import flow, remotepod
+from api.endpoints import flow, pod
 from config import fastapi_config, hypercorn_config, openapitags_config
 
 
@@ -29,7 +29,7 @@ def main(invocation: str = 'flow'):
                         #    prefix=fastapi_config.VERSION)
     elif invocation == 'pod':
         app.openapi_tags = openapitags_config.POD_API_TAGS
-        app.include_router(router=remotepod.router)
+        app.include_router(router=pod.router)
                         #    prefix=fastapi_config.VERSION)
     
     hc_serve(f_app=app)

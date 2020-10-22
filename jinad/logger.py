@@ -10,7 +10,7 @@ class LengthFilter(logging.Filter):
         return True
 
 def default_formatter():
-    _fmt = '%(asctime)s | %(levelname)8s | %(file_func_lineno)20s | %(message)s'
+    _fmt = '%(asctime)s | %(levelname)8s | %(processName)s | %(threadName)s | %(file_func_lineno)20s | %(message)s'
     _datefmt = '%b %d %H:%M:%S'
     return logging.Formatter(fmt=_fmt, datefmt=_datefmt)
 
