@@ -26,7 +26,6 @@ class PodAPI:
     
     def create(self, pea_args: dict):
         try:
-            # print(pea_args)
             r = requests.put(url=self.pod_url, 
                              json=pea_args)
             if r.status_code == status.HTTP_200_OK:
@@ -39,7 +38,7 @@ class PodAPI:
         try:
             r = requests.get(url=f'{self.log_url}/?pod_id={pod_id}', 
                              stream=True)
-            for log_line in r.iter_lines():
+            for log_line in r.iter_content():
                 if log_line:
                     self.logger.info(f'from remote: {log_line}')
 
@@ -56,25 +55,26 @@ class PodAPI:
             return False
 
 
-class RESTRemoteMutablePod(BasePea):
+class RemoteMutablePod(BasePea):
     """REST based Mutable pod to be used while invoking remote Pod via Flow API
 
     """
-
-    def loop_body(self):
+    def configure_api(self):
         try:
             self.pod_host, self.pod_port = self.args['peas'][0].host, self.args['peas'][0].port_expose
-            self.logger.info(f'got host {self.pod_host} and port {self.pod_port} for pod REST interface')
+            self.logger.info(f'got host {self.pod_host} and port {self.pod_port} for remote jinad pod')
         except (KeyError, AttributeError):
             self.logger.error('unable to fetch host & port of remote pod\'s REST interface')
             self.is_shutdown.set()
         
-        api = PodAPI(logger=self.logger, 
-                     host=self.pod_host, 
-                     port=self.pod_port)
-        
-        if api.is_alive():
-            self.logger.info('connected to the remote pod via jinad')
+        self.pod_api = PodAPI(logger=self.logger, 
+                              host=self.pod_host, 
+                              port=self.pod_port)
+
+    def loop_body(self):
+        self.configure_api()
+        if self.pod_api.is_alive():
+            self.logger.success('connected to the remote pod via jinad')
             
             def namespace_to_dict(args):
                 pea_args = {}
@@ -89,29 +89,24 @@ class RESTRemoteMutablePod(BasePea):
                 return pea_args
             
             pea_args = namespace_to_dict(self.args)
-            self.pod_id = api.create(pea_args=pea_args)
+            self.pod_id = self.pod_api.create(pea_args=pea_args)
             if self.pod_id:
-                self.logger.info(f'remote pod with id {self.pod_id} created')
+                self.logger.success(f'remote pod with id {self.pod_id} created')
                 self.set_ready()
                 
-                api.log(pod_id=self.pod_id)
-                
+                self.pod_api.log(pod_id=self.pod_id)
             else:
                 self.logger.error('remote pod creation failed')
         else:
             self.logger.error('couldn\'t connect to the remote jinad')
             self.is_shutdown.set()
     
-    def close(self):
-        api = PodAPI(logger=self.logger, 
-                     host=self.pod_host, 
-                     port=self.pod_port)
-        
-        if api.is_alive():
-            status = api.delete(pod_id=self.pod_id)
+    def loop_teardown(self):
+        if self.pod_api.is_alive():
+            status = self.pod_api.delete(pod_id=self.pod_id)
             if status:
-                self.logger.info(f'successfully deleted pod with id {self.pod_id}')
+                self.logger.success(f'successfully closed pod with id {self.pod_id}')
             else:
-                self.logger.error('remote pod deletion failed')
-
-        self.is_shutdown.set()
+                self.logger.error('remote pod close failed')
+        else:
+            self.logger.error('remote jinad pod is not active')
