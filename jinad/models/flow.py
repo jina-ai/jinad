@@ -1,14 +1,4 @@
-from typing import Optional
-from pydantic import BaseModel, Field, validator
+from .custom import build_pydantic_model
 
-
-class FlowBase(BaseModel):
-    uses: Optional[str] = Field(None,
-                                title='YAML file describing the Flow')
-    log_server: bool = Field(True,
-                             title='True if logserver needs to be enabled',
-                             example=True)
-    @validator('uses')
-    def check_yml(cls, value):
-        # TODO Implement yml check
-        return value
+FlowModel = build_pydantic_model(model_name='FlowModel', 
+                                 module='flow')
