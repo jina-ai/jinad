@@ -1,19 +1,20 @@
 import uuid
+import asyncio
 from typing import Dict
 from jina.peapods.pod import MutablePod
 from fastapi import status, APIRouter, Body
 from fastapi.responses import StreamingResponse
 
-from logger import get_logger
+from jina.logging import JinaLogger
 from models.pod import PodModel
+from store import pod_store
 from excepts import HTTPException
 from config import openapitags_config
 
 
 TAG = openapitags_config.POD_API_TAGS[0]['name']
-logger = get_logger(context='pod-context')
+logger = JinaLogger(context='👻 PODAPI')
 router = APIRouter()
-pod_dict = {}
 
 
 @router.on_event('startup')
@@ -35,9 +36,7 @@ async def _create(
 
     Args:
         pod_arguments (Dict): accepts Pod args
-    """
-    global pod_dict
-    
+    """    
     def dict_to_namespace(args: Dict):
         from jina.parser import set_pod_parser
         parser = set_pod_parser()
@@ -64,18 +63,18 @@ async def _create(
     
     pod_arguments = dict_to_namespace(pod_arguments)
 
-    p = MutablePod(args=pod_arguments)
-    p.start()
-    
-    pod_id = uuid.uuid1()
-    pod_dict[pod_id] = p
-    
+    with pod_store._session():
+        try:
+            pod_id = pod_store._create(pod_arguments=pod_arguments)
+        except Exception as e:
+            logger.exception(e)
+            raise HTTPException(status_code=404,
+                                detail=f'Something went wrong')
     return {
         'status_code': status.HTTP_200_OK,
         'pod_id': pod_id,
         'status': 'started'
     }
-
 
 @router.get(
     path='/alive',
@@ -92,10 +91,21 @@ async def _status():
     }
 
 
-async def stream_logs(current_pod):
-    for l in current_pod.log_iterator:
-        print(l)
-        yield l
+def finite_generator():
+    x = 0
+    while x < 100:
+        yield f"{x}"
+        x += 1
+
+
+async def astreamer(generator):
+    try:
+        for i in generator:
+            yield i
+            await asyncio.sleep(.001)
+
+    except asyncio.CancelledError as e:
+        print('cancelled')
 
 
 @router.get(
@@ -107,22 +117,15 @@ async def _log(
     pod_id: uuid.UUID
 ):
     """Stream logs from remote pod
-
-    Raises:
-        HTTPException: [description]
-
-    Returns:
-        [type]: [description]
     """
-    global pod_dict
-    try:
-        current_pod = pod_dict[pod_id]
-        return StreamingResponse(stream_logs(current_pod=current_pod))            
-    
-    except KeyError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f'Pod ID {pod_id} not found! Please create a new Flow')
-    
+    with pod_store._session():
+        try:
+            current_pod = pod_store._store[pod_id]
+            return StreamingResponse(astreamer(current_pod.log_iterator))
+        except KeyError:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f'Pod ID {pod_id} not found! Please create a new Flow')
+
 
 @router.delete(
     path='/pod',
@@ -133,28 +136,19 @@ async def _delete(
     pod_id: uuid.UUID
 ):
     """Close Pod context
-
-    Args:
-        pod_id (uuid.UUID): [description]
     """
-    global pod_dict
-    try:
-        current_pod = pod_dict[pod_id]
-        current_pod.close()
-        pod_dict.pop(pod_id)
-        return {
-            'status_code': status.HTTP_200_OK
-        }
-    except KeyError:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f'Pod ID {pod_id} not found! Please create a new Flow')
+    with pod_store._session():
+        try:
+            pod_store._delete(pod_id=pod_id)
+            return {
+                'status_code': status.HTTP_200_OK
+            }
+        except KeyError:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f'Pod ID {pod_id} not found! Please create a new Pod')
 
 
 @router.on_event('shutdown')
 def _shutdown():
-    global pod_dict
-    if pod_dict:
-        for pod_id, pod in pod_dict.copy().items():
-            logger.info(f'pod id `{pod_id}` still alive! Closing it!')
-            pod.close()
-            pod_dict.pop(pod_id)
+    with pod_store._session():
+        pod_store._delete_all()
