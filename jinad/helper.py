@@ -58,8 +58,8 @@ class FlowPod(_FlowPod):
         if self._args.host == __default_host__:
             return super().start()
         else:
-            from remote import RESTRemoteMutablePod
-            _remote_pod = RESTRemoteMutablePod(self.peas_args)
+            from remote import RemoteMutablePod
+            _remote_pod = RemoteMutablePod(self.peas_args)
             self.enter_context(_remote_pod)
             self.start_sentinels()
             return self

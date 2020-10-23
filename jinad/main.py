@@ -43,6 +43,7 @@ def hc_serve(f_app: 'FastAPI'):
     """
     config = Config()
     config.bind = [f'{hypercorn_config.HOST}:{hypercorn_config.PORT}'] 
+    config.loglevel = 'ERROR'
     
     asyncio.set_event_loop_policy(
         uvloop.EventLoopPolicy()

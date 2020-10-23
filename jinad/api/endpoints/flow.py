@@ -5,7 +5,7 @@ from typing import List, Union, Optional
 from jina.clients import py_client
 from fastapi import status, APIRouter, Body, Response, WebSocket
 
-from logger import get_logger
+from jina.logging import JinaLogger
 from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationFailed, HTTPException, GRPCServerError
@@ -13,7 +13,7 @@ from helper import Flow
 from config import openapitags_config
 
 
-logger = get_logger(context='flow-api')
+logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()
 TAG = openapitags_config.FLOW_API_TAGS[0]['name']
 
@@ -70,6 +70,7 @@ def _create(
             raise HTTPException(status_code=404,
                                 detail=f'Bad pods args')
         except Exception as e:
+            logger.critical(e)
             raise HTTPException(status_code=404,
                                 detail=f'Something went wrong')
     return {
