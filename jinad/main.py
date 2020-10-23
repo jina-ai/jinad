@@ -20,17 +20,17 @@ def main(invocation: str = 'flow'):
     app = FastAPI(
         title=fastapi_config.NAME,
         description=fastapi_config.DESCRIPTION,
-        version=fastapi_config.VERSION,
+        version=fastapi_config.VERSION
     )
     
     if invocation == 'flow':
         app.openapi_tags = openapitags_config.FLOW_API_TAGS
-        app.include_router(router=flow.router)
-                        #    prefix=fastapi_config.VERSION)
+        app.include_router(router=flow.router,
+                           prefix=fastapi_config.PREFIX)
     elif invocation == 'pod':
         app.openapi_tags = openapitags_config.POD_API_TAGS
-        app.include_router(router=pod.router)
-                        #    prefix=fastapi_config.VERSION)
+        app.include_router(router=pod.router,
+                           prefix=fastapi_config.PREFIX)
     
     hc_serve(f_app=app)
 

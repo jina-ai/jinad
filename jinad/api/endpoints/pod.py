@@ -2,10 +2,11 @@ import uuid
 import asyncio
 from typing import Dict
 from jina.peapods.pod import MutablePod
+from jina.logging import JinaLogger
 from fastapi import status, APIRouter, Body
 from fastapi.responses import StreamingResponse
 
-from jina.logging import JinaLogger
+from helper import dict_to_namespace
 from models.pod import PodModel
 from store import pod_store
 from excepts import HTTPException
@@ -24,43 +25,28 @@ async def startup():
 
 @router.put(
     path='/pod',
-    summary='Create a MutablePod locally (triggered via a Flow)',
+    summary='Create a MutablePod',
     tags=[TAG]
 )
 async def _create(
     pod_arguments: Dict
 ):
-    """Used to create a MutablePod on localhost!
+    """
+    Used to create a MutablePod on localhost. 
     This is usually a remote pod which gets triggered by a Flow context
-    Shouldn't be created with manual trigger 
-
-    Args:
-        pod_arguments (Dict): accepts Pod args
-    """    
-    def dict_to_namespace(args: Dict):
-        from jina.parser import set_pod_parser
-        parser = set_pod_parser()
-        pod_args = {}
-        
-        for pea_type, pea_args in args.items():
-            # this is for pea_type: head & tail when None
-            if pea_args is None:
-                pod_args[pea_type] = None
-            
-            # this is for pea_type: head & tail when not None
-            if isinstance(pea_args, dict):
-                pea_args, _ = parser.parse_known_intermixed_args(pea_args)
-                pod_args[pea_type] = pea_args
-            
-            # this is for pea_type: peas (multiple entries)
-            if isinstance(pea_args, list):
-                pod_args[pea_type] = []
-                for i in pea_args:
-                    _parsed, _ = parser.parse_known_intermixed_args(i)
-                    pod_args[pea_type].append(_parsed)
-
-        return pod_args
     
+    > Shouldn't be created with manual trigger
+
+    Args: pod_arguments (Dict)
+        
+        {
+            'head': PodModel,
+            'tail': PodModel,
+            'peas': [PodModel]
+        }
+        
+        
+    """
     pod_arguments = dict_to_namespace(pod_arguments)
 
     with pod_store._session():

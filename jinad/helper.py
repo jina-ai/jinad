@@ -1,5 +1,6 @@
 import copy
-from typing import Union, Tuple, List
+import argparse
+from typing import Union, Tuple, List, Dict
 from jina.flow import Flow as _Flow
 from jina import __default_host__
 from jina.peapods.pod import FlowPod as _FlowPod
@@ -63,3 +64,41 @@ class FlowPod(_FlowPod):
             self.enter_context(_remote_pod)
             self.start_sentinels()
             return self
+
+
+def dict_to_namespace(args: Dict):
+    from jina.parser import set_pod_parser
+    parser = set_pod_parser()
+    pod_args = {}
+    
+    for pea_type, pea_args in args.items():
+        # this is for pea_type: head & tail when None
+        if pea_args is None:
+            pod_args[pea_type] = None
+        
+        # this is for pea_type: head & tail when not None
+        if isinstance(pea_args, dict):
+            pea_args, _ = parser.parse_known_intermixed_args(pea_args)
+            pod_args[pea_type] = pea_args
+        
+        # this is for pea_type: peas (multiple entries)
+        if isinstance(pea_args, list):
+            pod_args[pea_type] = []
+            for i in pea_args:
+                _parsed, _ = parser.parse_known_intermixed_args(i)
+                pod_args[pea_type].append(_parsed)
+
+    return pod_args
+
+
+def namespace_to_dict(args):
+    pea_args = {}
+    for k, v in args.items():
+        if v is None:
+            pea_args[k] = None
+        if isinstance(v, argparse.Namespace):
+            pea_args[k] = vars(v)
+        if isinstance(v, list):
+            pea_args[k] = []
+            pea_args[k].extend([vars(_) for _ in v]) 
+    return pea_args

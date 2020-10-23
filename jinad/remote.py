@@ -1,7 +1,8 @@
-import argparse
 import requests
 from fastapi import status
 from jina.peapods.pea import BasePea
+
+from helper import namespace_to_dict
 
 
 class PodAPI:
@@ -10,7 +11,7 @@ class PodAPI:
                  port: int,
                  logger):
         self.logger = logger
-        self.base_url = f'http://{host}:{port}'
+        self.base_url = f'http://{host}:{port}/v1'
         self.alive_url = f'{self.base_url}/alive'
         self.pod_url = f'{self.base_url}/pod'
         self.log_url = f'{self.base_url}/log'
@@ -76,24 +77,13 @@ class RemoteMutablePod(BasePea):
         if self.pod_api.is_alive():
             self.logger.success('connected to the remote pod via jinad')
             
-            def namespace_to_dict(args):
-                pea_args = {}
-                for k, v in args.items():
-                    if v is None:
-                        pea_args[k] = None
-                    if isinstance(v, argparse.Namespace):
-                        pea_args[k] = vars(v)
-                    if isinstance(v, list):
-                        pea_args[k] = []
-                        pea_args[k].extend([vars(_) for _ in v]) 
-                return pea_args
-            
             pea_args = namespace_to_dict(self.args)
             self.pod_id = self.pod_api.create(pea_args=pea_args)
             if self.pod_id:
                 self.logger.success(f'remote pod with id {self.pod_id} created')
                 self.set_ready()
                 
+                # TODO: this is blocking pod context. handle it
                 self.pod_api.log(pod_id=self.pod_id)
             else:
                 self.logger.error('remote pod creation failed')
