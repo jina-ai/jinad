@@ -59,6 +59,7 @@ class InMemoryStore:
 class InMemoryFlowStore(InMemoryStore):
     
     def _create(self, config: Union[str, List[PodModel]] = None):
+        """ Creates Flow using List[PodModel] or string based yaml """
         flow_id = uuid.uuid4()
 
         if isinstance(config, str):
@@ -73,7 +74,8 @@ class InMemoryFlowStore(InMemoryStore):
         if isinstance(config, list):
             flow = Flow()
             try:
-                flow = self._build_with_pods(flow=flow, pods=config)
+                flow = self._build_with_pods(flow=flow, 
+                                             pod_args=config)
             except Exception as e:
                 self.logger.error(f'Got error while creating flows via pods {e}')
                 raise FlowCreationFailed
@@ -83,26 +85,25 @@ class InMemoryFlowStore(InMemoryStore):
         self.logger.info(f'Started flow with flow_id {flow_id}')
         return flow_id, flow.host, flow.port_expose
     
-    # TODO: change this to pod_args 
-    def _build_with_pods(self, flow, pods):
-        for pod in pods:
-            flow = flow.add(
-                name=pod.name,
-                uses=pod.uses,
-                host=pod.host,
-                port_expose=pod.port_expose,
-                timeout_ready=-1,
-                parallel=1
-            )
+    def _build_with_pods(self, 
+                         flow: Flow, 
+                         pod_args: List[PodModel]):
+        """ Since we rely on PodModel, this can accept all params that a Pod can accept """
+        for current_pod_args in pod_args:
+            _current_pod_args = current_pod_args.dict()
+            _current_pod_args.pop('log_config')
+            flow = flow.add(**_current_pod_args)
         return flow
     
     def _get(self, flow_id):
+        """ Fetches a Flow from the store """
         if flow_id not in self._store:
             raise KeyError(f'{flow_id} not found')
         flow = self._store[flow_id]
         return flow.host, flow.port_expose
         
     def _delete(self, flow_id):
+        """ Closes a Flow context & deletes from store """
         if flow_id not in self._store:
             raise KeyError(f'flow_id {flow_id} not found in store. please create one!')
         flow = self._store.pop(flow_id)
@@ -113,6 +114,7 @@ class InMemoryFlowStore(InMemoryStore):
 class InMemoryPodStore(InMemoryStore):
     
     def _create(self, pod_arguments: Dict):
+        """ Creates MutablePod via Flow """
         pod_id = uuid.uuid4()
         pod = MutablePod(args=pod_arguments)
         pod = self._start(context=pod)
@@ -121,6 +123,7 @@ class InMemoryPodStore(InMemoryStore):
         return pod_id
 
     def _delete(self, pod_id):
+        """ Closes a Pod context & deletes from store """
         if pod_id not in self._store:
             raise KeyError(f'pod_id {pod_id} not found in store. please create one!')
         pod = self._store.pop(pod_id)
