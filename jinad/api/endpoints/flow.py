@@ -25,7 +25,7 @@ async def startup():
 
 @router.put(
     path='/flow',
-    summary='Build & start a flow using Pods',
+    summary='Build & start a Flow',
     tags=[TAG]
 )
 def _create(
@@ -33,32 +33,27 @@ def _create(
                                               example=json.loads(PodModel().json()))
 ):
     """
-    Used to enter a Flow context manager
-    
-    Accepts 
-        - A List of Pods
-        Example:
+    Build a Flow either using list of `PodModel` or using `Flow YAML` (converted to string)
+
+    > A List of PodModels
         
-            ```
-            [   
-                {       
-                    "name": "pod1",
-                    "uses": "_pass"
-                },
-                {
-                    "name": "pod1",
-                    "uses": "_pass",
-                    "host": "10.18.3.127",
-                    "port_expose": 8000
-                }
-            ]
-            ```
+        [
+            {       
+                "name": "pod1",
+                "uses": "_pass"
+            },
+            {
+                "name": "pod2",
+                "uses": "_pass",
+                "host": "10.18.3.127",
+                "port_expose": 8000
+            }
+        ]
+
+    > [Flow YAML Syntax](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
             
-        - Flow yaml
-        Example:
-            ```
-            To be added
-            ```
+        To be added
+
     """
     with flow_store._session():
         try:
@@ -84,13 +79,21 @@ def _create(
 
 @router.get(
     path='/flow/{flow_id}',
-    summary='Get flow from flow id',
+    summary='Get Flow information',
     tags=[TAG]  
 )
 async def _fetch(
     flow_id: uuid.UUID, 
     yaml_only: bool = False
 ):
+    """
+    Get Flow information using `flow_id`. 
+    
+    Following details are sent:
+    - Flow YAML
+    - Gateway host
+    - Gateway port
+    """
     try:
         # TODO: Fix - This fails with the inherited class
         # yaml_spec = flow_wrapper.f.yaml_spec
@@ -113,13 +116,19 @@ async def _fetch(
 
 @router.get(
     path='/ping',
-    summary='Check grpc connection',
+    summary='Connect to Flow gateway',
     tags=[TAG]
 )
 def _ping(
     host: str, 
     port: int
 ):
+    """
+    Ping to check if we can connect to gateway `host:port`
+    
+    Note: Make sure Flow is running
+
+    """
     try:
         py_client(port_expose=port, 
                   host=host)
@@ -134,12 +143,15 @@ def _ping(
 
 @router.delete(
     path='/flow',
-    summary='Delete flow',
+    summary='Close Flow context',
     tags=[TAG]
 )
 def _delete(
     flow_id: uuid.UUID
-):    
+):
+    """
+    Close Flow context
+    """
     with flow_store._session():
         try:
             flow_store._delete(flow_id=flow_id)
