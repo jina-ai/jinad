@@ -3,7 +3,7 @@ import json
 from ruamel.yaml import YAML
 from typing import List, Union, Optional
 from jina.clients import py_client
-from fastapi import status, APIRouter, Body, Response, WebSocket
+from fastapi import status, APIRouter, Body, Response, WebSocket, File, UploadFile
 
 from jina.logging import JinaLogger
 from models.pod import PodModel
@@ -24,18 +24,16 @@ async def startup():
 
 
 @router.put(
-    path='/flow',
-    summary='Build & start a Flow',
+    path='/flow/pods',
+    summary='Build & start a Flow using Pods',
     tags=[TAG]
 )
-def _create(
-    config: Union[List[PodModel], str] = Body(..., 
-                                              example=json.loads(PodModel().json()))
+def _create_from_pods(
+    pods: Union[List[PodModel]] = Body(..., 
+                                       example=json.loads(PodModel().json()))
 ):
     """
-    Build a Flow either using list of `PodModel` or using `Flow YAML` (converted to string)
-
-    > A List of PodModels
+    Build a Flow using a list of `PodModel`
         
         [
             {       
@@ -49,18 +47,10 @@ def _create(
                 "port_expose": 8000
             }
         ]
-
-    > [Flow YAML Syntax](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
-            
-        To be added
-
     """
     with flow_store._session():
         try:
-            flow_id, host, port_expose = flow_store._create(config=config)
-        except FlowYamlParseException:
-            raise HTTPException(status_code=404,
-                                detail=f'Invalid yaml file.')
+            flow_id, host, port_expose = flow_store._create(config=pods)
         except FlowCreationFailed:
             raise HTTPException(status_code=404,
                                 detail=f'Bad pods args')
@@ -68,6 +58,40 @@ def _create(
             logger.critical(e)
             raise HTTPException(status_code=404,
                                 detail=f'Something went wrong')
+    return {
+        'status_code': status.HTTP_200_OK,
+        'flow_id': flow_id,
+        'host': host,
+        'port': port_expose,
+        'status': 'started'
+    }
+
+
+@router.put(
+    path='/flow/yaml',
+    summary='Build & start a Flow using YAML',
+    tags=[TAG]
+)
+def _create_from_yaml(
+    yamlspec: UploadFile = File(...)
+):
+    """ 
+    Build a flow using `Flow YAML` 
+    
+    > [Flow YAML Syntax](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
+
+    """
+    with flow_store._session():
+        try:
+            flow_id, host, port_expose = flow_store._create(config=yamlspec.file)
+        except FlowYamlParseException:
+            raise HTTPException(status_code=404,
+                                detail=f'Invalid yaml file.')
+        except Exception as e:
+            logger.critical(e)
+            raise HTTPException(status_code=404,
+                                detail=f'Something went wrong')
+    
     return {
         'status_code': status.HTTP_200_OK,
         'flow_id': flow_id,

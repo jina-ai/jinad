@@ -1,11 +1,14 @@
 import uuid
+import tempfile
 from typing import List, Dict, Union
 from ruamel.yaml import YAML
 from contextlib import contextmanager
+from jina.helper import colored
+from jina.logging import JinaLogger
 from jina.peapods.pod import MutablePod
 
+
 from helper import Flow
-from jina.logging import JinaLogger
 from models.pod import PodModel
 from excepts import FlowYamlParseException, FlowCreationFailed
 
@@ -59,21 +62,22 @@ class InMemoryStore:
 class InMemoryFlowStore(InMemoryStore):
     
     def _create(self, config: Union[str, List[PodModel]] = None):
-        """ Creates Flow using List[PodModel] or string based yaml """
+        """ Creates Flow using List[PodModel] or yaml spec """
         flow_id = uuid.uuid4()
 
-        if isinstance(config, str):
-            yaml = YAML()
+        if isinstance(config, str) or isinstance(config, tempfile.SpooledTemporaryFile):
+            yamlspec = config.read() if isinstance(config, tempfile.SpooledTemporaryFile) else config
             try:
+                yaml = YAML()
                 yaml.register_class(Flow)
-                flow = yaml.load(config)
+                flow = yaml.load(yamlspec)
             except Exception as e:
                 self.logger.error(f'Got error while loading from yaml {e}')
                 raise FlowYamlParseException
 
         if isinstance(config, list):
-            flow = Flow()
             try:
+                flow = Flow()
                 flow = self._build_with_pods(flow=flow, 
                                              pod_args=config)
             except Exception as e:
@@ -82,7 +86,7 @@ class InMemoryFlowStore(InMemoryStore):
 
         flow = self._start(context=flow)
         self._store[flow_id] = flow
-        self.logger.info(f'Started flow with flow_id {flow_id}')
+        self.logger.info(f'Started flow with flow_id {colored(flow_id, "cyan")}')
         return flow_id, flow.host, flow.port_expose
     
     def _build_with_pods(self, 
@@ -108,7 +112,7 @@ class InMemoryFlowStore(InMemoryStore):
             raise KeyError(f'flow_id {flow_id} not found in store. please create one!')
         flow = self._store.pop(flow_id)
         self._close(context=flow)
-        self.logger.info(f'Closed flow with flow_id {flow_id}')
+        self.logger.info(f'Closed flow with flow_id {colored(flow_id, "cyan")}')
 
 
 class InMemoryPodStore(InMemoryStore):
@@ -119,7 +123,7 @@ class InMemoryPodStore(InMemoryStore):
         pod = MutablePod(args=pod_arguments)
         pod = self._start(context=pod)
         self._store[pod_id] = pod
-        self.logger.info(f'Started pod with pod_id {pod_id}')
+        self.logger.info(f'Started pod with pod_id {colored(pod_id, "cyan")}')
         return pod_id
 
     def _delete(self, pod_id):
@@ -128,7 +132,7 @@ class InMemoryPodStore(InMemoryStore):
             raise KeyError(f'pod_id {pod_id} not found in store. please create one!')
         pod = self._store.pop(pod_id)
         self._close(context=pod)
-        self.logger.info(f'Closed flow with flow_id {pod_id}')
+        self.logger.info(f'Closed pod with pod_id {colored(pod_id, "cyan")}')
 
 
 flow_store = InMemoryFlowStore()
