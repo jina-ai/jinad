@@ -59,7 +59,7 @@ def _create_from_pods(
                                 detail=f'Bad pods args')
         except FlowStartFailed:
             raise HTTPException(status_code=404,
-                                detail=f'Flow couldnt get started')
+                                detail=f'Flow couldn\'t get started')
     return {
         'status_code': status.HTTP_200_OK,
         'flow_id': flow_id,
@@ -141,7 +141,7 @@ def _create_from_yaml(
                                 detail=f'Invalid yaml file.')
         except FlowStartFailed as e:
             raise HTTPException(status_code=404,
-                                detail=f'Flow couldnt get started:  {repr(e)}')
+                                detail=f'Flow couldn\'t get started:  {repr(e)}')
     
     return {
         'status_code': status.HTTP_200_OK,
