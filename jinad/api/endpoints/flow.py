@@ -122,6 +122,7 @@ def _create_from_yaml(
         try:
             # This makes sure `uses` & `py_modules` are created locally in `cwd`
             # TODO: Handle file creation, deletion better
+            # TODO: Do we need to add support for `uses_before`, `uses_after`?
             if uses_files:
                 [create_meta_files_from_upload(current_use_file) for current_use_file in uses_files]
 

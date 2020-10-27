@@ -1,5 +1,6 @@
 import requests
 from fastapi import status
+from jina.helper import colored
 from jina.peapods.pea import BasePea
 
 from helper import namespace_to_dict
@@ -80,10 +81,9 @@ class RemoteMutablePod(BasePea):
             pea_args = namespace_to_dict(self.args)
             self.pod_id = self.pod_api.create(pea_args=pea_args)
             if self.pod_id:
-                self.logger.success(f'remote pod with id {self.pod_id} created')
+                self.logger.success(f'created remote pod with id {colored(self.pod_id, "cyan")} created')
                 self.set_ready()
                 
-                # TODO: this is blocking pod context. handle it
                 self.pod_api.log(pod_id=self.pod_id)
             else:
                 self.logger.error('remote pod creation failed')
@@ -91,11 +91,11 @@ class RemoteMutablePod(BasePea):
             self.logger.error('couldn\'t connect to the remote jinad')
             self.is_shutdown.set()
     
-    def loop_teardown(self):
+    def close(self):
         if self.pod_api.is_alive():
             status = self.pod_api.delete(pod_id=self.pod_id)
             if status:
-                self.logger.success(f'successfully closed pod with id {self.pod_id}')
+                self.logger.success(f'successfully closed pod with id {colored(self.pod_id, "cyan")}')
             else:
                 self.logger.error('remote pod close failed')
         else:
