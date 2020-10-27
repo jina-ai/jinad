@@ -81,7 +81,7 @@ class RemoteMutablePod(BasePea):
             pea_args = namespace_to_dict(self.args)
             self.pod_id = self.pod_api.create(pea_args=pea_args)
             if self.pod_id:
-                self.logger.success(f'created remote pod with id {colored(self.pod_id, "cyan")} created')
+                self.logger.success(f'created remote pod with id {colored(self.pod_id, "cyan")}')
                 self.set_ready()
                 
                 self.pod_api.log(pod_id=self.pod_id)
