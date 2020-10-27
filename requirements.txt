@@ -2,3 +2,4 @@ jina
 fastapi
 hypercorn
 pydantic
+python-multipart

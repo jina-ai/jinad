@@ -60,7 +60,7 @@ class RemoteMutablePod(BasePea):
     """REST based Mutable pod to be used while invoking remote Pod via Flow API
 
     """
-    def configure_api(self):
+    def configure_pod_api(self):
         try:
             self.pod_host, self.pod_port = self.args['peas'][0].host, self.args['peas'][0].port_expose
             self.logger.info(f'got host {self.pod_host} and port {self.pod_port} for remote jinad pod')
@@ -73,7 +73,7 @@ class RemoteMutablePod(BasePea):
                               port=self.pod_port)
 
     def loop_body(self):
-        self.configure_api()
+        self.configure_pod_api()
         if self.pod_api.is_alive():
             self.logger.success('connected to the remote pod via jinad')
             
