@@ -160,13 +160,8 @@ def _create_from_yaml(
             if pymodules_files:
                 [create_meta_files_from_upload(current_pymodule_file) for current_pymodule_file in pymodules_files]
 
-            flow_id, host, port_expose = flow_store._create(config=yamlspec.file)
-
-            if uses_files:
-                [delete_meta_files_from_upload(current_use_file) for current_use_file in uses_files]
-
-            if pymodules_files:
-                [delete_meta_files_from_upload(current_pymodule_file) for current_pymodule_file in pymodules_files]
+            flow_id, host, port_expose = flow_store._create(config=yamlspec.file,
+                                                            files=uses_files + pymodules_files)
 
         except FlowYamlParseException:
             raise HTTPException(status_code=404,

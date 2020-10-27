@@ -6,9 +6,9 @@ from contextlib import contextmanager
 from jina.helper import yaml, colored
 from jina.logging import JinaLogger
 from jina.peapods.pod import MutablePod
+from fastapi import UploadFile
 
-from helper import Flow
-# from jina.flow import Flow
+from helper import Flow, delete_meta_files_from_upload
 from models.pod import PodModel
 from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
     ExecutorFailToLoad, PeaFailToStart
@@ -63,7 +63,8 @@ class InMemoryStore:
 class InMemoryFlowStore(InMemoryStore):
     
     def _create(self,
-                config: Union[str, SpooledTemporaryFile, List[PodModel]] = None):
+                config: Union[str, SpooledTemporaryFile, List[PodModel]] = None,
+                files: List[UploadFile] = None):
         """ Creates Flow using List[PodModel] or yaml spec """
         flow_id = uuid.uuid4()
 
@@ -97,7 +98,9 @@ class InMemoryFlowStore(InMemoryStore):
             self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
             raise FlowStartFailed(repr(e))
 
-        self._store[flow_id] = flow
+        self._store[flow_id] = {}
+        self._store[flow_id]['flow'] = flow
+        self._store[flow_id]['files'] = files
         self.logger.info(f'Started flow with flow_id {colored(flow_id, "cyan")}')
         return flow_id, flow.host, flow.port_expose
     
@@ -117,7 +120,7 @@ class InMemoryFlowStore(InMemoryStore):
         """ Fetches a Flow from the store """
         if flow_id not in self._store:
             raise KeyError(f'{flow_id} not found')
-        flow = self._store[flow_id]
+        flow = self._store[flow_id]['flow']
         return flow.host, flow.port_expose, flow.yaml_spec
         
     def _delete(self, flow_id: uuid.UUID):
@@ -125,7 +128,9 @@ class InMemoryFlowStore(InMemoryStore):
         if flow_id not in self._store:
             raise KeyError(f'flow_id {flow_id} not found in store. please create one!')
         flow = self._store.pop(flow_id)
-        self._close(context=flow)
+        self._close(context=flow['flow'])
+        for current_file in flow['files']:
+            delete_meta_files_from_upload(current_file=current_file)
         self.logger.info(f'Closed flow with flow_id {colored(flow_id, "cyan")}')
 
 
