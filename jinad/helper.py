@@ -1,3 +1,4 @@
+import os
 import copy
 import argparse
 from typing import Union, Tuple, List, Dict
@@ -6,6 +7,7 @@ from jina import __default_host__
 from jina.peapods.pod import FlowPod as _FlowPod
 from jina.peapods.pea import BasePea
 from jina.excepts import FlowTopologyError
+from fastapi import UploadFile
 
 
 class Flow(_Flow):
@@ -102,3 +104,13 @@ def namespace_to_dict(args):
             pea_args[k] = []
             pea_args[k].extend([vars(_) for _ in v]) 
     return pea_args
+
+
+def create_meta_files_from_upload(current_file: UploadFile):
+    with open(current_file.filename, 'wb') as f:
+        f.write(current_file.file.read())
+
+
+def delete_meta_files_from_upload(current_file: UploadFile):
+    if os.path.isfile(current_file.filename):
+        os.remove(current_file.filename)
