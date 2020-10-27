@@ -170,7 +170,6 @@ async def _fetch(
     - Gateway port
     """
     try:
-        # TODO: Fix - This fails with the inherited class
         with flow_store._session():
             host, port_expose, yaml_spec = flow_store._get(flow_id=flow_id)
 
