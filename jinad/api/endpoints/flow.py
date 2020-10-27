@@ -91,30 +91,61 @@ def _create_from_yaml(
     **yamlspec**:
 
         !Flow
+        with:
+            rest_api: true
+            compress_hwm: 1024
         pods:
-            encode1:
-                uses: test-if-encode1.yml
-            encode2:
-                uses: test-if-encode2.yml
+            encode:
+                uses: helloworld.encoder.yml
+                parallel: 2
+            index:
+                uses: helloworld.indexer.yml
+                shards: 2
+                separated_workspace: true
 
-    **uses_files**: `test-if-encode1.yml`
+    **uses_files**: `helloworld.encoder.yml`
 
-        !BaseTFEncoder
+        !MyEncoder
+        metas:
+            name: myenc
+            workspace: /tmp/blah
+            py_modules: components.py
         requests:
-        on:
-            IndexRequest:
-            - !EncodeDriver
-                if: doc.mime_type.startswith('text')
+            on:
+                [IndexRequest, SearchRequest]:
+                - !Blob2PngURI {}
+                - !EncodeDriver {}
+                - !ExcludeQL
+                with:
+                    fields:
+                        - buffer
+                        - chunks
 
-    **uses_files**: `test-if-encode2.yml`
+    **uses_files**: `helloworld.indexer.yml`
 
-        !BaseTFEncoder
-        requests:
-        on:
-            IndexRequest:
-            - !EncodeDriver
-                if: doc.mime_type.startswith('image')
+        !CompoundIndexer
+        components:
+        - !NumpyIndexer
+            with:
+                index_filename: vec.gz
+            metas:
+                name: vecidx  
+                workspace: /tmp/blah
+        - !BinaryPbIndexer
+            with:
+                index_filename: chunk.gz
+            metas:
+                name: chunkidx
+                workspace: /tmp/blah
+        metas:
+            name: chunk_indexer
+            workspace: /tmp/blah
 
+    **pymodules_files**: `components.py`
+    
+        class MyEncoder(BaseImageEncoder):
+            def __init__(self):
+                ...
 
     """
 
@@ -199,10 +230,11 @@ def _ping(
     port: int
 ):
     """
-    Ping to check if we can connect to gateway `host:port`
+    Ping to check if we can connect to gateway via gRPC `host:port`
     
     Note: Make sure Flow is running
-
+    # TODO: check if gateway is REST & connect via REST
+    
     """
     try:
         py_client(port_expose=port, 
