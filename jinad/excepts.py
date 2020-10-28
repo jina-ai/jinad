@@ -1,4 +1,4 @@
-from jina.excepts import GRPCServerError
+from jina.excepts import GRPCServerError, ExecutorFailToLoad, PeaFailToStart
 from fastapi import HTTPException
 
 class FlowYamlParseException(Exception):
@@ -7,3 +7,6 @@ class FlowYamlParseException(Exception):
 
 class FlowCreationFailed(Exception):
     """ Exception during flow creation via pods"""
+
+class FlowStartFailed(Exception):
+    """ Exception during flow start"""

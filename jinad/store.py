@@ -1,16 +1,17 @@
 import uuid
-import tempfile
+from tempfile import SpooledTemporaryFile
 from typing import List, Dict, Union
 from ruamel.yaml import YAML
 from contextlib import contextmanager
-from jina.helper import colored
+from jina.helper import yaml, colored
 from jina.logging import JinaLogger
 from jina.peapods.pod import MutablePod
 
-
 from helper import Flow
+# from jina.flow import Flow
 from models.pod import PodModel
-from excepts import FlowYamlParseException, FlowCreationFailed
+from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
+    ExecutorFailToLoad, PeaFailToStart
 
 
 class InMemoryStore:
@@ -61,18 +62,19 @@ class InMemoryStore:
 
 class InMemoryFlowStore(InMemoryStore):
     
-    def _create(self, config: Union[str, List[PodModel]] = None):
+    def _create(self,
+                config: Union[str, SpooledTemporaryFile, List[PodModel]] = None):
         """ Creates Flow using List[PodModel] or yaml spec """
         flow_id = uuid.uuid4()
 
-        if isinstance(config, str) or isinstance(config, tempfile.SpooledTemporaryFile):
-            yamlspec = config.read() if isinstance(config, tempfile.SpooledTemporaryFile) else config
+        # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
+        if isinstance(config, str) or isinstance(config, SpooledTemporaryFile):
+            yamlspec = config.read().decode() if isinstance(config, SpooledTemporaryFile) else config
             try:
-                yaml = YAML()
                 yaml.register_class(Flow)
                 flow = yaml.load(yamlspec)
             except Exception as e:
-                self.logger.error(f'Got error while loading from yaml {e}')
+                self.logger.error(f'Got error while loading from yaml {repr(e)}')
                 raise FlowYamlParseException
 
         if isinstance(config, list):
@@ -81,10 +83,20 @@ class InMemoryFlowStore(InMemoryStore):
                 flow = self._build_with_pods(flow=flow, 
                                              pod_args=config)
             except Exception as e:
-                self.logger.error(f'Got error while creating flows via pods {e}')
+                self.logger.error(f'Got error while creating flows via pods: {repr(e)}')
                 raise FlowCreationFailed
 
-        flow = self._start(context=flow)
+        try:
+            flow = self._start(context=flow)
+        except PeaFailToStart as e:
+            self.logger.critical(f'Flow couldn\'t get started - Invalid Pod {repr(e)} ')
+            self.logger.critical('Possible causes - invalid/not uploaded pod yamls & pymodules')
+            # TODO: Send correct error message
+            raise FlowStartFailed(repr(e))
+        except Exception as e:
+            self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
+            raise FlowStartFailed(repr(e))
+
         self._store[flow_id] = flow
         self.logger.info(f'Started flow with flow_id {colored(flow_id, "cyan")}')
         return flow_id, flow.host, flow.port_expose
@@ -99,14 +111,16 @@ class InMemoryFlowStore(InMemoryStore):
             flow = flow.add(**_current_pod_args)
         return flow
     
-    def _get(self, flow_id):
+    def _get(self,
+             flow_id: uuid.UUID,
+             yaml_only: bool = False):
         """ Fetches a Flow from the store """
         if flow_id not in self._store:
             raise KeyError(f'{flow_id} not found')
         flow = self._store[flow_id]
-        return flow.host, flow.port_expose
+        return flow.host, flow.port_expose, flow.yaml_spec
         
-    def _delete(self, flow_id):
+    def _delete(self, flow_id: uuid.UUID):
         """ Closes a Flow context & deletes from store """
         if flow_id not in self._store:
             raise KeyError(f'flow_id {flow_id} not found in store. please create one!')
@@ -126,7 +140,7 @@ class InMemoryPodStore(InMemoryStore):
         self.logger.info(f'Started pod with pod_id {colored(pod_id, "cyan")}')
         return pod_id
 
-    def _delete(self, pod_id):
+    def _delete(self, pod_id: uuid.UUID):
         """ Closes a Pod context & deletes from store """
         if pod_id not in self._store:
             raise KeyError(f'pod_id {pod_id} not found in store. please create one!')

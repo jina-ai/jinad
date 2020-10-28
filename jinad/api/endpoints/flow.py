@@ -1,5 +1,7 @@
+import os
 import uuid
 import json
+import tempfile
 from ruamel.yaml import YAML
 from typing import List, Union, Optional
 from jina.clients import py_client
@@ -8,8 +10,9 @@ from fastapi import status, APIRouter, Body, Response, WebSocket, File, UploadFi
 from jina.logging import JinaLogger
 from models.pod import PodModel
 from store import flow_store
-from excepts import FlowYamlParseException, FlowCreationFailed, HTTPException, GRPCServerError
-from helper import Flow
+from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
+    HTTPException, GRPCServerError
+from helper import Flow, create_meta_files_from_upload, delete_meta_files_from_upload
 from config import openapitags_config
 
 
@@ -54,10 +57,9 @@ def _create_from_pods(
         except FlowCreationFailed:
             raise HTTPException(status_code=404,
                                 detail=f'Bad pods args')
-        except Exception as e:
-            logger.critical(e)
+        except FlowStartFailed:
             raise HTTPException(status_code=404,
-                                detail=f'Something went wrong')
+                                detail=f'Flow couldn\'t get started')
     return {
         'status_code': status.HTTP_200_OK,
         'flow_id': flow_id,
@@ -73,24 +75,73 @@ def _create_from_pods(
     tags=[TAG]
 )
 def _create_from_yaml(
-    yamlspec: UploadFile = File(...)
+    yamlspec: UploadFile = File(...),
+    uses_files: List[UploadFile] = File([]),
+    pymodules_files: List[UploadFile] = File([])
 ):
     """ 
-    Build a flow using `Flow YAML` 
-    
-    > [Flow YAML Syntax](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
+    Build a flow using [Flow YAML](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
+
+    > Upload Flow yamlspec (`yamlspec`)
+
+    > Yamls that Pods use (`uses_files`) (Optional)
+
+    > Python modules (`pymodules_files`) that the Pods use (Optional)
+
+    **yamlspec**:
+
+        !Flow
+        pods:
+            encode1:
+                uses: test-if-encode1.yml
+            encode2:
+                uses: test-if-encode2.yml
+
+    **uses_files**: `test-if-encode1.yml`
+
+        !BaseTFEncoder
+        requests:
+        on:
+            IndexRequest:
+            - !EncodeDriver
+                if: doc.mime_type.startswith('text')
+
+    **uses_files**: `test-if-encode2.yml`
+
+        !BaseTFEncoder
+        requests:
+        on:
+            IndexRequest:
+            - !EncodeDriver
+                if: doc.mime_type.startswith('image')
+
 
     """
+
     with flow_store._session():
         try:
+            # This makes sure `uses` & `py_modules` are created locally in `cwd`
+            # TODO: Handle file creation, deletion better
+            if uses_files:
+                [create_meta_files_from_upload(current_use_file) for current_use_file in uses_files]
+
+            if pymodules_files:
+                [create_meta_files_from_upload(current_pymodule_file) for current_pymodule_file in pymodules_files]
+
             flow_id, host, port_expose = flow_store._create(config=yamlspec.file)
+
+            if uses_files:
+                [delete_meta_files_from_upload(current_use_file) for current_use_file in uses_files]
+
+            if pymodules_files:
+                [delete_meta_files_from_upload(current_pymodule_file) for current_pymodule_file in pymodules_files]
+
         except FlowYamlParseException:
             raise HTTPException(status_code=404,
                                 detail=f'Invalid yaml file.')
-        except Exception as e:
-            logger.critical(e)
+        except FlowStartFailed as e:
             raise HTTPException(status_code=404,
-                                detail=f'Something went wrong')
+                                detail=f'Flow couldn\'t get started:  {repr(e)}')
     
     return {
         'status_code': status.HTTP_200_OK,
@@ -119,17 +170,16 @@ async def _fetch(
     - Gateway port
     """
     try:
-        # TODO: Fix - This fails with the inherited class
-        # yaml_spec = flow_wrapper.f.yaml_spec
-        # if yaml_only:
-        #     return Response(content=yaml_spec,
-        #                     media_type='application/yaml')
         with flow_store._session():
-            host, port_expose = flow_store._get(flow_id=flow_id)
+            host, port_expose, yaml_spec = flow_store._get(flow_id=flow_id)
+
+        if yaml_only:
+            return Response(content=yaml_spec,
+                            media_type='application/yaml')
         
         return {
             'status_code': status.HTTP_200_OK,
-            # 'yaml': yaml_spec,
+            'yaml': yaml_spec,
             'host': host,
             'port': port_expose
         }
