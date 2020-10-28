@@ -12,7 +12,7 @@ from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
     HTTPException, GRPCServerError
-from helper import Flow, create_meta_files_from_upload, delete_meta_files_from_upload
+from helper import Flow
 from config import openapitags_config
 
 
@@ -76,8 +76,8 @@ def _create_from_pods(
 )
 def _create_from_yaml(
     yamlspec: UploadFile = File(...),
-    uses_files: List[UploadFile] = File([]),
-    pymodules_files: List[UploadFile] = File([])
+    uses_files: List[UploadFile] = File(()),
+    pymodules_files: List[UploadFile] = File(())
 ):
     """ 
     Build a flow using [Flow YAML](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
@@ -151,18 +151,8 @@ def _create_from_yaml(
 
     with flow_store._session():
         try:
-            # This makes sure `uses` & `py_modules` are created locally in `cwd`
-            # TODO: Handle file creation, deletion better
-            # TODO: Do we need to add support for `uses_before`, `uses_after`?
-            if uses_files:
-                [create_meta_files_from_upload(current_use_file) for current_use_file in uses_files]
-
-            if pymodules_files:
-                [create_meta_files_from_upload(current_pymodule_file) for current_pymodule_file in pymodules_files]
-
             flow_id, host, port_expose = flow_store._create(config=yamlspec.file,
                                                             files=uses_files + pymodules_files)
-
         except FlowYamlParseException:
             raise HTTPException(status_code=404,
                                 detail=f'Invalid yaml file.')

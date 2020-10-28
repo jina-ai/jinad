@@ -1,6 +1,7 @@
 import os
 import copy
 import argparse
+import ruamel.yaml
 from typing import Union, Tuple, List, Dict
 from jina.flow import Flow as _Flow
 from jina import __default_host__
@@ -68,27 +69,54 @@ class FlowPod(_FlowPod):
             return self
 
 
-def dict_to_namespace(args: Dict):
+def get_enum_defaults():
+    """ Helper function to get all args that have Enum default values """
     from jina.parser import set_pod_parser
+    from enum import Enum
     parser = set_pod_parser()
+    all_args = parser.parse_args()
+    enum_args = {}
+    for key in vars(all_args):
+        if isinstance(parser.get_default(key), Enum):
+            enum_args[key] = parser.get_default(key)
+    return enum_args
+
+
+def handle_enums(args):
+    """ Since REST relies on json, reverse conversion of integers to enums is needed """
+    default_enums = get_enum_defaults()
+    _args = args.copy()
+
+    if 'log_config' in _args:
+        _args.pop('log_config')
+
+    for key, value in args.items():
+        if key in default_enums:
+            _enum_type = type(default_enums[key])
+            _args[key] = _enum_type(value)
+    return _args
+
+
+def dict_to_namespace(args: Dict):
+    import argparse
     pod_args = {}
     
     for pea_type, pea_args in args.items():
         # this is for pea_type: head & tail when None
         if pea_args is None:
             pod_args[pea_type] = None
-        
+
         # this is for pea_type: head & tail when not None
         if isinstance(pea_args, dict):
-            pea_args, _ = parser.parse_known_intermixed_args(pea_args)
-            pod_args[pea_type] = pea_args
-        
+            pea_args = handle_enums(args=pea_args)
+            pod_args[pea_type] = argparse.Namespace(**pea_args)
+
         # this is for pea_type: peas (multiple entries)
         if isinstance(pea_args, list):
             pod_args[pea_type] = []
-            for i in pea_args:
-                _parsed, _ = parser.parse_known_intermixed_args(i)
-                pod_args[pea_type].append(_parsed)
+            for pea_arg in pea_args:
+                pea_arg = handle_enums(args=pea_arg)
+                pod_args[pea_type].append(argparse.Namespace(**pea_arg))
 
     return pod_args
 
@@ -114,3 +142,33 @@ def create_meta_files_from_upload(current_file: UploadFile):
 def delete_meta_files_from_upload(current_file: UploadFile):
     if os.path.isfile(current_file.filename):
         os.remove(current_file.filename)
+
+
+def fetch_files_from_yaml(pea_args: Dict):
+    if 'peas' in pea_args:
+        uses_files = set()
+        pymodules_files = set()
+
+        for current_pea in pea_args['peas']:
+            if current_pea['uses'] and current_pea['uses'].endswith(('yml', 'yaml')):
+                uses_files.add(current_pea['uses'])
+
+            if current_pea['uses_before'] and current_pea['uses_before'].endswith(('yml', 'yaml')):
+                uses_files.add(current_pea['uses_before'])
+
+            if current_pea['uses_after'] and current_pea['uses_after'].endswith(('yml', 'yaml')):
+                uses_files.add(current_pea['uses_after'])
+
+            if current_pea['py_modules']:
+                uses_files.add(current_pea['py_modules'])
+
+        if uses_files:
+            for current_file in uses_files:
+                if current_file.endswith(('yml', 'yaml')):
+                    with open(current_file) as f:
+                        result = ruamel.yaml.round_trip_load(f)
+
+                    if 'metas' in result and 'py_modules' in result['metas']:
+                        pymodules_files.add(result['metas']['py_modules'])
+
+        return uses_files, pymodules_files

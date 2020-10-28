@@ -8,5 +8,10 @@ class FlowYamlParseException(Exception):
 class FlowCreationFailed(Exception):
     """ Exception during flow creation via pods"""
 
+
 class FlowStartFailed(Exception):
     """ Exception during flow start"""
+
+
+class PodStartFailed(Exception):
+    """ Exception during pod start """
