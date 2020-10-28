@@ -11,7 +11,7 @@ from helper import dict_to_namespace, create_meta_files_from_upload
 from models.pod import PodModel
 from store import pod_store
 from excepts import HTTPException, PodStartFailed
-from config import openapitags_config
+from config import openapitags_config, hypercorn_config
 
 
 TAG = openapitags_config.POD_API_TAGS[0]['name']
@@ -21,6 +21,7 @@ router = APIRouter()
 
 @router.on_event('startup')
 async def startup():
+    logger.info(f'Hypercorn + FastAPI running on {hypercorn_config.HOST}:{hypercorn_config.PORT}')
     logger.info('Welcome to Jina daemon for remote pods')
 
 

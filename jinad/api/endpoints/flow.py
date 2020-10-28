@@ -13,7 +13,7 @@ from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
     HTTPException, GRPCServerError
 from helper import Flow
-from config import openapitags_config
+from config import openapitags_config, hypercorn_config
 
 
 logger = JinaLogger(context='👻 FLOWAPI')
@@ -23,6 +23,7 @@ TAG = openapitags_config.FLOW_API_TAGS[0]['name']
 
 @router.on_event('startup')
 async def startup():
+    logger.info(f'Hypercorn + FastAPI running on {hypercorn_config.HOST}:{hypercorn_config.PORT}')
     logger.info('Welcome to Jina daemon. You can start playing with Flows!')
 
 
