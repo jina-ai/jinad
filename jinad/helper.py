@@ -10,11 +10,16 @@ from jina.peapods.pea import BasePea
 from jina.excepts import FlowTopologyError
 from fastapi import UploadFile
 
+from jina.enums import PodRoleType
+
 
 class Flow(_Flow):
+    # TODO: no need to copy the whole add function here,
+    # we can separate `FlowPod` invocation to a different function & inherit just that
     def add(self,
             needs: Union[str, Tuple[str], List[str]] = None,
             copy_flow: bool = True,
+            pod_role: 'PodRoleType' = PodRoleType.POD,
             **kwargs) -> 'Flow':
         """
         Add a pod to the current flow object and return the new modified flow object.
@@ -26,6 +31,7 @@ class Flow(_Flow):
 
         :param needs: the name of the pod(s) that this pod receives data from.
                            One can also use 'pod.Gateway' to indicate the connection with the gateway.
+        :param pod_role: the role of the Pod, used for visualization and route planning
         :param copy_flow: when set to true, then always copy the current flow and do the modification on top of it then return, otherwise, do in-line modification
         :param kwargs: other keyword-value arguments that the pod CLI supports
         :return: a (new) flow object with modification
@@ -36,11 +42,12 @@ class Flow(_Flow):
         pod_name = kwargs.get('name', None)
 
         if pod_name in op_flow._pod_nodes:
-            raise FlowTopologyError(f'name: {pod_name} is used in this Flow already!')
+            new_name = f'{pod_name}{len(op_flow._pod_nodes)}'
+            self.logger.debug(f'"{pod_name}" is used in this Flow already! renamed it to "{new_name}"')
+            pod_name = new_name
 
         if not pod_name:
-            pod_name = '%s%d' % ('pod', op_flow._pod_name_counter)
-            op_flow._pod_name_counter += 1
+            pod_name = f'pod{len(op_flow._pod_nodes)}'
 
         if not pod_name.isidentifier():
             # hyphen - can not be used in the name
@@ -50,8 +57,9 @@ class Flow(_Flow):
 
         kwargs.update(op_flow._common_kwargs)
         kwargs['name'] = pod_name
-        op_flow._pod_nodes[pod_name] = FlowPod(kwargs=kwargs, needs=needs)
-        op_flow.set_last_pod(pod_name, False)
+
+        op_flow._pod_nodes[pod_name] = FlowPod(kwargs=kwargs, needs=needs, pod_role=pod_role)
+        op_flow.last_pod = pod_name
 
         return op_flow
 
