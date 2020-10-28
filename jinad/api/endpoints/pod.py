@@ -1,3 +1,4 @@
+import time
 import uuid
 import asyncio
 from typing import Dict
@@ -77,21 +78,14 @@ async def _status():
     }
 
 
-def finite_generator():
-    x = 0
-    while x < 100:
-        yield f"{x}"
-        x += 1
-
-
-async def astreamer(generator):
+def streamer(generator):
     try:
         for i in generator:
             yield i
-            await asyncio.sleep(.001)
+            time.sleep(.001)
 
-    except asyncio.CancelledError as e:
-        print('cancelled')
+    except GeneratorExit:
+        logger.info("Exiting from Pod log_iterator")
 
 
 @router.get(
@@ -99,15 +93,16 @@ async def astreamer(generator):
     summary='Stream log using log_iterator',
     tags=[TAG]
 )
-async def _log(
+def _log(
     pod_id: uuid.UUID
 ):
-    """Stream logs from remote pod
+    """
+    Stream logs from remote pod using log_iterator (This will be changed!)
     """
     with pod_store._session():
         try:
             current_pod = pod_store._store[pod_id]
-            return StreamingResponse(astreamer(current_pod.log_iterator))
+            return StreamingResponse(streamer(current_pod.log_iterator))
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f'Pod ID {pod_id} not found! Please create a new Flow')
