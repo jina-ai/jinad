@@ -7,10 +7,11 @@ from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
 from api.endpoints import flow, pod
-from config import fastapi_config, hypercorn_config, openapitags_config
+from config import jinad_config, fastapi_config, \
+    hypercorn_config, openapitags_config
 
 
-def main(invocation: str = 'flow'):
+def main():
     """Entrypoint to the api
 
     Args:
@@ -23,11 +24,11 @@ def main(invocation: str = 'flow'):
         version=fastapi_config.VERSION
     )
     
-    if invocation == 'flow':
+    if jinad_config.CONTEXT == 'flow':
         app.openapi_tags = openapitags_config.FLOW_API_TAGS
         app.include_router(router=flow.router,
                            prefix=fastapi_config.PREFIX)
-    elif invocation == 'pod':
+    elif jinad_config.CONTEXT == 'pod':
         app.openapi_tags = openapitags_config.POD_API_TAGS
         app.include_router(router=pod.router,
                            prefix=fastapi_config.PREFIX)
@@ -56,4 +57,4 @@ def hc_serve(f_app: 'FastAPI'):
 
 
 if __name__ == "__main__":
-    main(invocation='flow')
+    main()
