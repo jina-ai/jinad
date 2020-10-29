@@ -1,16 +1,16 @@
 import time
 import uuid
 import asyncio
-from typing import Dict
+from typing import Dict, List, Any
 from jina.peapods.pod import MutablePod
 from jina.logging import JinaLogger
-from fastapi import status, APIRouter, Body
+from fastapi import status, APIRouter, Body, File, UploadFile
 from fastapi.responses import StreamingResponse
 
-from helper import dict_to_namespace
+from helper import dict_to_namespace, create_meta_files_from_upload
 from models.pod import PodModel
 from store import pod_store
-from excepts import HTTPException
+from excepts import HTTPException, PodStartFailed
 from config import openapitags_config
 
 
@@ -22,6 +22,33 @@ router = APIRouter()
 @router.on_event('startup')
 async def startup():
     logger.info('Welcome to Jina daemon for remote pods')
+
+
+@router.put(
+    path='/upload',
+    summary='Upload pod context yamls & pymodules',
+    tags=[TAG]
+)
+async def _upload(
+    uses_files: List[UploadFile] = File(()),
+    pymodules_files: List[UploadFile] = File(())
+):
+    """
+
+    """
+    upload_status = 'nothing to upload'
+    if uses_files:
+        [create_meta_files_from_upload(current_file) for current_file in uses_files]
+        upload_status = 'uploaded'
+
+    if pymodules_files:
+        [create_meta_files_from_upload(current_file) for current_file in pymodules_files]
+        upload_status = 'uploaded'
+
+    return {
+        'status_code': status.HTTP_200_OK,
+        'status': upload_status
+    }
 
 
 @router.put(
@@ -37,6 +64,7 @@ async def _create(
     This is usually a remote pod which gets triggered by a Flow context
     
     > Shouldn't be created with manual trigger
+    # TODO: Manual trigger support to be added
 
     Args: pod_arguments (Dict)
         
@@ -53,8 +81,11 @@ async def _create(
     with pod_store._session():
         try:
             pod_id = pod_store._create(pod_arguments=pod_arguments)
+        except PodStartFailed as e:
+            raise HTTPException(status_code=404,
+                                detail=f'Pod couldn\'t get started:  {repr(e)}')
         except Exception as e:
-            logger.exception(e)
+            logger.error(f'Got an error while creating a pod {repr(e)}')
             raise HTTPException(status_code=404,
                                 detail=f'Something went wrong')
     return {
@@ -101,7 +132,7 @@ def _log(
     """
     with pod_store._session():
         try:
-            current_pod = pod_store._store[pod_id]
+            current_pod = pod_store._store[pod_id]['pod']
             return StreamingResponse(streamer(current_pod.log_iterator))
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,

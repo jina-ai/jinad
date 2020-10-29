@@ -1,9 +1,11 @@
 import requests
-from fastapi import status
+from typing import List, Dict
+from contextlib import ExitStack
+from fastapi import status, UploadFile
 from jina.helper import colored
 from jina.peapods.pea import BasePea
 
-from helper import namespace_to_dict
+from helper import namespace_to_dict, fetch_files_from_yaml
 
 
 class PodAPI:
@@ -14,6 +16,7 @@ class PodAPI:
         self.logger = logger
         self.base_url = f'http://{host}:{port}/v1'
         self.alive_url = f'{self.base_url}/alive'
+        self.upload_url = f'{self.base_url}/upload'
         self.pod_url = f'{self.base_url}/pod'
         self.log_url = f'{self.base_url}/log'
     
@@ -26,9 +29,31 @@ class PodAPI:
         except requests.exceptions.ConnectionError:
             return False
     
-    def create(self, pea_args: dict):
+    def upload(self, pea_args):
         try:
-            r = requests.put(url=self.pod_url, 
+            _uses_files, _pymodules_files = fetch_files_from_yaml(pea_args=pea_args)
+
+            with ExitStack() as file_stack:
+                files = []
+                if _uses_files:
+                    files.extend([('uses_files', file_stack.enter_context(open(fname, 'rb')))
+                                  for fname in _uses_files])
+                if _pymodules_files:
+                    files.extend([('pymodules_files', file_stack.enter_context(open(fname, 'rb')))
+                                  for fname in _pymodules_files])
+                if files:
+                    headers = {'content-type': 'multipart/form-data'}
+                    r = requests.put(url=self.upload_url,
+                                     files=files)
+                    if r.status_code == status.HTTP_200_OK:
+                        self.logger.info(f'Got status {colored(r.json()["status"], "green")} from remote pod')
+
+        except Exception as e:
+            self.logger.error(f'got an error while uploading context files to remote pod {repr(e)}')
+
+    def create(self, pea_args: Dict):
+        try:
+            r = requests.put(url=self.pod_url,
                              json=pea_args)
             if r.status_code == status.HTTP_200_OK:
                 return r.json()['pod_id']
@@ -79,11 +104,11 @@ class RemoteMutablePod(BasePea):
             self.logger.success('connected to the remote pod via jinad')
             
             pea_args = namespace_to_dict(self.args)
+            self.pod_api.upload(pea_args=pea_args)
             self.pod_id = self.pod_api.create(pea_args=pea_args)
             if self.pod_id:
                 self.logger.success(f'created remote pod with id {colored(self.pod_id, "cyan")}')
                 self.set_ready()
-                
                 self.pod_api.log(pod_id=self.pod_id)
             else:
                 self.logger.error('remote pod creation failed')

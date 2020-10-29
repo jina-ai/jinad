@@ -1,4 +1,4 @@
-jina
+jina[http]
 fastapi
 hypercorn
 pydantic

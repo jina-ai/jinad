@@ -6,12 +6,12 @@ from contextlib import contextmanager
 from jina.helper import yaml, colored
 from jina.logging import JinaLogger
 from jina.peapods.pod import MutablePod
+from fastapi import UploadFile
 
-from helper import Flow
-# from jina.flow import Flow
+from helper import Flow, create_meta_files_from_upload, delete_meta_files_from_upload
 from models.pod import PodModel
 from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
-    ExecutorFailToLoad, PeaFailToStart
+    ExecutorFailToLoad, PeaFailToStart, PodStartFailed
 
 
 class InMemoryStore:
@@ -63,9 +63,15 @@ class InMemoryStore:
 class InMemoryFlowStore(InMemoryStore):
     
     def _create(self,
-                config: Union[str, SpooledTemporaryFile, List[PodModel]] = None):
+                config: Union[str, SpooledTemporaryFile, List[PodModel]] = None,
+                files: List[UploadFile] = None):
         """ Creates Flow using List[PodModel] or yaml spec """
         flow_id = uuid.uuid4()
+
+        # This makes sure `uses` & `py_modules` are created locally in `cwd`
+        # TODO: Handle file creation, deletion better
+        if files:
+            [create_meta_files_from_upload(current_file) for current_file in files]
 
         # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
         if isinstance(config, str) or isinstance(config, SpooledTemporaryFile):
@@ -97,7 +103,9 @@ class InMemoryFlowStore(InMemoryStore):
             self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
             raise FlowStartFailed(repr(e))
 
-        self._store[flow_id] = flow
+        self._store[flow_id] = {}
+        self._store[flow_id]['flow'] = flow
+        self._store[flow_id]['files'] = files
         self.logger.info(f'Started flow with flow_id {colored(flow_id, "cyan")}')
         return flow_id, flow.host, flow.port_expose
     
@@ -117,7 +125,10 @@ class InMemoryFlowStore(InMemoryStore):
         """ Fetches a Flow from the store """
         if flow_id not in self._store:
             raise KeyError(f'{flow_id} not found')
-        flow = self._store[flow_id]
+
+        if 'flow' in self._store[flow_id]:
+            flow = self._store[flow_id]['flow']
+
         return flow.host, flow.port_expose, flow.yaml_spec
         
     def _delete(self, flow_id: uuid.UUID):
@@ -125,27 +136,54 @@ class InMemoryFlowStore(InMemoryStore):
         if flow_id not in self._store:
             raise KeyError(f'flow_id {flow_id} not found in store. please create one!')
         flow = self._store.pop(flow_id)
-        self._close(context=flow)
+
+        if 'flow' in flow:
+            self._close(context=flow['flow'])
+
+        if 'files' in flow:
+            for current_file in flow['files']:
+                delete_meta_files_from_upload(current_file=current_file)
+
         self.logger.info(f'Closed flow with flow_id {colored(flow_id, "cyan")}')
 
 
 class InMemoryPodStore(InMemoryStore):
     
-    def _create(self, pod_arguments: Dict):
+    def _create(self,
+                pod_arguments: Dict,
+                files: List[UploadFile] = None):
         """ Creates MutablePod via Flow """
         pod_id = uuid.uuid4()
-        pod = MutablePod(args=pod_arguments)
-        pod = self._start(context=pod)
-        self._store[pod_id] = pod
+        self._store[pod_id] = {}
+
+        if files:
+            [create_meta_files_from_upload(current_file) for current_file in files]
+            self._store[pod_id]['files'] = files
+
+        try:
+            pod = MutablePod(args=pod_arguments)
+            pod = self._start(context=pod)
+        except Exception as e:
+            self.logger.critical(f'Got following error while starting the pod: {repr(e)}')
+            raise PodStartFailed(repr(e))
+
+        self._store[pod_id]['pod'] = pod
         self.logger.info(f'Started pod with pod_id {colored(pod_id, "cyan")}')
         return pod_id
-
+ 
     def _delete(self, pod_id: uuid.UUID):
         """ Closes a Pod context & deletes from store """
         if pod_id not in self._store:
             raise KeyError(f'pod_id {pod_id} not found in store. please create one!')
         pod = self._store.pop(pod_id)
-        self._close(context=pod)
+
+        if 'pod' in pod:
+            self._close(context=pod['pod'])
+
+        if 'files' in pod:
+            for current_file in pod['files']:
+                delete_meta_files_from_upload(current_file=current_file)
+
         self.logger.info(f'Closed pod with pod_id {colored(pod_id, "cyan")}')
 
 
