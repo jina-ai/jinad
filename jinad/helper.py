@@ -38,7 +38,6 @@ class Flow(_Flow):
         """
 
         op_flow = copy.deepcopy(self) if copy_flow else self
-
         pod_name = kwargs.get('name', None)
 
         if pod_name in op_flow._pod_nodes:
@@ -55,9 +54,10 @@ class Flow(_Flow):
 
         needs = op_flow._parse_endpoints(op_flow, pod_name, needs, connect_to_last_pod=True)
 
-        kwargs.update(op_flow._common_kwargs)
+        for key, value in op_flow._common_kwargs.items():
+            if key not in kwargs:
+                kwargs[key] = value
         kwargs['name'] = pod_name
-
         op_flow._pod_nodes[pod_name] = FlowPod(kwargs=kwargs, needs=needs, pod_role=pod_role)
         op_flow.last_pod = pod_name
 
@@ -65,7 +65,7 @@ class Flow(_Flow):
 
 
 class FlowPod(_FlowPod):
-    
+
     def start(self) -> 'FlowPod':
         if self._args.host == __default_host__:
             return super().start()
@@ -108,7 +108,7 @@ def handle_enums(args):
 def dict_to_namespace(args: Dict):
     import argparse
     pod_args = {}
-    
+
     for pea_type, pea_args in args.items():
         # this is for pea_type: head & tail when None
         if pea_args is None:
@@ -138,7 +138,7 @@ def namespace_to_dict(args):
             pea_args[k] = vars(v)
         if isinstance(v, list):
             pea_args[k] = []
-            pea_args[k].extend([vars(_) for _ in v]) 
+            pea_args[k].extend([vars(_) for _ in v])
     return pea_args
 
 
