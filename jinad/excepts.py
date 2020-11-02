@@ -5,13 +5,17 @@ class FlowYamlParseException(Exception):
     """ Exception during loading yaml file for Flow creation"""
 
 
-class FlowCreationFailed(Exception):
+class FlowCreationException(Exception):
     """ Exception during flow creation via pods"""
 
 
-class FlowStartFailed(Exception):
+class FlowStartException(Exception):
     """ Exception during flow start"""
 
 
-class PodStartFailed(Exception):
+class PodStartException(Exception):
+    """ Exception during pod start """
+
+
+class PeaStartException(Exception):
     """ Exception during pod start """

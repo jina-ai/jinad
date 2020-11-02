@@ -2,17 +2,18 @@ import os
 import uuid
 import json
 import tempfile
-from ruamel.yaml import YAML
 from typing import List, Union, Optional
+
+from ruamel.yaml import YAML
+from jina.flow import Flow
 from jina.clients import py_client
+from jina.logging import JinaLogger
 from fastapi import status, APIRouter, Body, Response, WebSocket, File, UploadFile
 
-from jina.logging import JinaLogger
 from models.pod import PodModel
 from store import flow_store
-from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
+from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException, GRPCServerError
-from helper import Flow
 from config import openapitags_config, hypercorn_config
 
 
@@ -33,14 +34,14 @@ async def startup():
     tags=[TAG]
 )
 def _create_from_pods(
-    pods: Union[List[PodModel]] = Body(..., 
+    pods: Union[List[PodModel]] = Body(...,
                                        example=json.loads(PodModel().json()))
 ):
     """
     Build a Flow using a list of `PodModel`
-        
+
         [
-            {       
+            {
                 "name": "pod1",
                 "uses": "_pass"
             },
@@ -55,10 +56,10 @@ def _create_from_pods(
     with flow_store._session():
         try:
             flow_id, host, port_expose = flow_store._create(config=pods)
-        except FlowCreationFailed:
+        except FlowCreationException:
             raise HTTPException(status_code=404,
                                 detail=f'Bad pods args')
-        except FlowStartFailed:
+        except FlowStartException:
             raise HTTPException(status_code=404,
                                 detail=f'Flow couldn\'t get started')
     return {
@@ -80,7 +81,7 @@ def _create_from_yaml(
     uses_files: List[UploadFile] = File(()),
     pymodules_files: List[UploadFile] = File(())
 ):
-    """ 
+    """
     Build a flow using [Flow YAML](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
 
     > Upload Flow yamlspec (`yamlspec`)
@@ -130,7 +131,7 @@ def _create_from_yaml(
             with:
                 index_filename: vec.gz
             metas:
-                name: vecidx  
+                name: vecidx
                 workspace: /tmp/blah
         - !BinaryPbIndexer
             with:
@@ -143,7 +144,7 @@ def _create_from_yaml(
             workspace: /tmp/blah
 
     **pymodules_files**: `components.py`
-    
+
         class MyEncoder(BaseImageEncoder):
             def __init__(self):
                 ...
@@ -153,14 +154,14 @@ def _create_from_yaml(
     with flow_store._session():
         try:
             flow_id, host, port_expose = flow_store._create(config=yamlspec.file,
-                                                            files=uses_files + pymodules_files)
+                                                            files=list(uses_files) + list(pymodules_files))
         except FlowYamlParseException:
             raise HTTPException(status_code=404,
                                 detail=f'Invalid yaml file.')
-        except FlowStartFailed as e:
+        except FlowStartException as e:
             raise HTTPException(status_code=404,
                                 detail=f'Flow couldn\'t get started:  {repr(e)}')
-    
+
     return {
         'status_code': status.HTTP_200_OK,
         'flow_id': flow_id,
@@ -173,15 +174,15 @@ def _create_from_yaml(
 @router.get(
     path='/flow/{flow_id}',
     summary='Get Flow information',
-    tags=[TAG]  
+    tags=[TAG]
 )
 async def _fetch(
-    flow_id: uuid.UUID, 
+    flow_id: uuid.UUID,
     yaml_only: bool = False
 ):
     """
-    Get Flow information using `flow_id`. 
-    
+    Get Flow information using `flow_id`.
+
     Following details are sent:
     - Flow YAML
     - Gateway host
@@ -194,7 +195,7 @@ async def _fetch(
         if yaml_only:
             return Response(content=yaml_spec,
                             media_type='application/yaml')
-        
+
         return {
             'status_code': status.HTTP_200_OK,
             'yaml': yaml_spec,
@@ -212,18 +213,18 @@ async def _fetch(
     tags=[TAG]
 )
 def _ping(
-    host: str, 
+    host: str,
     port: int
 ):
     """
     Ping to check if we can connect to gateway via gRPC `host:port`
-    
+
     Note: Make sure Flow is running
     # TODO: check if gateway is REST & connect via REST
-    
+
     """
     try:
-        py_client(port_expose=port, 
+        py_client(port_expose=port,
                   host=host)
         return {
             'status_code': status.HTTP_200_OK,

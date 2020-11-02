@@ -1,16 +1,16 @@
 import time
 import uuid
-import asyncio
 from typing import Dict, List, Any
+
 from jina.peapods.pod import MutablePod
 from jina.logging import JinaLogger
 from fastapi import status, APIRouter, Body, File, UploadFile
 from fastapi.responses import StreamingResponse
 
-from helper import dict_to_namespace, create_meta_files_from_upload
+from helper import pod_dict_to_namespace, create_meta_files_from_upload
 from models.pod import PodModel
 from store import pod_store
-from excepts import HTTPException, PodStartFailed
+from excepts import HTTPException, PodStartException
 from config import openapitags_config, hypercorn_config
 
 
@@ -61,28 +61,28 @@ async def _create(
     pod_arguments: Dict
 ):
     """
-    Used to create a MutablePod on localhost. 
+    Used to create a MutablePod on localhost.
     This is usually a remote pod which gets triggered by a Flow context
-    
+
     > Shouldn't be created with manual trigger
     # TODO: Manual trigger support to be added
 
     Args: pod_arguments (Dict)
-        
+
         {
             'head': PodModel,
             'tail': PodModel,
             'peas': [PodModel]
         }
-        
-        
+
+
     """
-    pod_arguments = dict_to_namespace(pod_arguments)
+    pod_arguments = pod_dict_to_namespace(pod_arguments)
 
     with pod_store._session():
         try:
             pod_id = pod_store._create(pod_arguments=pod_arguments)
-        except PodStartFailed as e:
+        except PodStartException as e:
             raise HTTPException(status_code=404,
                                 detail=f'Pod couldn\'t get started:  {repr(e)}')
         except Exception as e:
@@ -93,20 +93,6 @@ async def _create(
         'status_code': status.HTTP_200_OK,
         'pod_id': pod_id,
         'status': 'started'
-    }
-
-@router.get(
-    path='/alive',
-    summary='Get status of jinad',
-    status_code=status.HTTP_200_OK,
-    tags=[TAG]
-)
-async def _status():
-    """
-    Used to check if the api is running (returns 200) 
-    """
-    return {
-        'status_code': status.HTTP_200_OK
     }
 
 
