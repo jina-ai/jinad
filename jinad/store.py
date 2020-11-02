@@ -3,25 +3,28 @@ from tempfile import SpooledTemporaryFile
 from typing import List, Dict, Union
 from ruamel.yaml import YAML
 from contextlib import contextmanager
+
+from jina.flow import Flow
 from jina.helper import yaml, colored
 from jina.logging import JinaLogger
+from jina.peapods import Pea
 from jina.peapods.pod import MutablePod
 from fastapi import UploadFile
 
-from helper import Flow, create_meta_files_from_upload, delete_meta_files_from_upload
+from helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from models.pod import PodModel
-from excepts import FlowYamlParseException, FlowCreationFailed, FlowStartFailed, \
-    ExecutorFailToLoad, PeaFailToStart, PodStartFailed
+from excepts import ExecutorFailToLoad, PeaFailToStart, FlowYamlParseException, FlowCreationException, \
+    FlowStartException, PodStartException, PeaStartException
 
 
 class InMemoryStore:
-    
+
     _store = {}
     # TODO: Implement fastapi based oauth/bearer security here
     credentials = 'foo:bar'
     _session_token = None
     logger = JinaLogger(context='🏪 STORE')
-    
+
     @contextmanager
     def _session(self):
         if self._session_token:
@@ -33,35 +36,35 @@ class InMemoryStore:
             yield
         finally:
             self._logout(self._session_token)
-    
+
     # TODO: implement login-logout here to manage session token
     def _login(self, creds):
         token = hash(creds)
         self.logger.info(f'LOGIN: {token}')
         return token
-    
+
     def _logout(self, token):
         self.logger.info(f'LOGOUT: {token}')
-        
+
     def _create(self):
         raise NotImplementedError
-    
+
     def _start(self, context):
         return context.start()
-    
+
     def _close(self, context):
         context.close()
-    
+
     def _delete(self):
         raise NotImplementedError
-        
+
     def _delete_all(self):
         for _id in self._store.copy().keys():
             self._delete(_id)
-    
+
 
 class InMemoryFlowStore(InMemoryStore):
-    
+
     def _create(self,
                 config: Union[str, SpooledTemporaryFile, List[PodModel]] = None,
                 files: List[UploadFile] = None):
@@ -86,11 +89,11 @@ class InMemoryFlowStore(InMemoryStore):
         if isinstance(config, list):
             try:
                 flow = Flow()
-                flow = self._build_with_pods(flow=flow, 
+                flow = self._build_with_pods(flow=flow,
                                              pod_args=config)
             except Exception as e:
                 self.logger.error(f'Got error while creating flows via pods: {repr(e)}')
-                raise FlowCreationFailed
+                raise FlowCreationException
 
         try:
             flow = self._start(context=flow)
@@ -98,19 +101,19 @@ class InMemoryFlowStore(InMemoryStore):
             self.logger.critical(f'Flow couldn\'t get started - Invalid Pod {repr(e)} ')
             self.logger.critical('Possible causes - invalid/not uploaded pod yamls & pymodules')
             # TODO: Send correct error message
-            raise FlowStartFailed(repr(e))
+            raise FlowStartException(repr(e))
         except Exception as e:
             self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
-            raise FlowStartFailed(repr(e))
+            raise FlowStartException(repr(e))
 
         self._store[flow_id] = {}
         self._store[flow_id]['flow'] = flow
         self._store[flow_id]['files'] = files
         self.logger.info(f'Started flow with flow_id {colored(flow_id, "cyan")}')
         return flow_id, flow.host, flow.port_expose
-    
-    def _build_with_pods(self, 
-                         flow: Flow, 
+
+    def _build_with_pods(self,
+                         flow: Flow,
                          pod_args: List[PodModel]):
         """ Since we rely on PodModel, this can accept all params that a Pod can accept """
         for current_pod_args in pod_args:
@@ -118,7 +121,7 @@ class InMemoryFlowStore(InMemoryStore):
             _current_pod_args.pop('log_config')
             flow = flow.add(**_current_pod_args)
         return flow
-    
+
     def _get(self,
              flow_id: uuid.UUID,
              yaml_only: bool = False):
@@ -130,7 +133,7 @@ class InMemoryFlowStore(InMemoryStore):
             flow = self._store[flow_id]['flow']
 
         return flow.host, flow.port_expose, flow.yaml_spec
-        
+
     def _delete(self, flow_id: uuid.UUID):
         """ Closes a Flow context & deletes from store """
         if flow_id not in self._store:
@@ -148,29 +151,24 @@ class InMemoryFlowStore(InMemoryStore):
 
 
 class InMemoryPodStore(InMemoryStore):
-    
+
     def _create(self,
-                pod_arguments: Dict,
-                files: List[UploadFile] = None):
+                pod_arguments: Dict):
         """ Creates MutablePod via Flow """
         pod_id = uuid.uuid4()
         self._store[pod_id] = {}
-
-        if files:
-            [create_meta_files_from_upload(current_file) for current_file in files]
-            self._store[pod_id]['files'] = files
 
         try:
             pod = MutablePod(args=pod_arguments)
             pod = self._start(context=pod)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pod: {repr(e)}')
-            raise PodStartFailed(repr(e))
+            raise PodStartException(repr(e))
 
         self._store[pod_id]['pod'] = pod
         self.logger.info(f'Started pod with pod_id {colored(pod_id, "cyan")}')
         return pod_id
- 
+
     def _delete(self, pod_id: uuid.UUID):
         """ Closes a Pod context & deletes from store """
         if pod_id not in self._store:
@@ -187,5 +185,41 @@ class InMemoryPodStore(InMemoryStore):
         self.logger.info(f'Closed pod with pod_id {colored(pod_id, "cyan")}')
 
 
+class InMemoryPeaStore(InMemoryStore):
+    """ Creates Pea on remote """
+    # TODO: Merge this with InMemoryPodStore
+    def _create(self,
+                pea_arguments: Dict):
+        pea_id = uuid.uuid4()
+        self._store[pea_id] = {}
+
+        try:
+            pea = Pea(args=pea_arguments, allow_remote=False)
+            pea = self._start(context=pea)
+        except Exception as e:
+            self.logger.critical(f'Got following error while starting the pea: {repr(e)}')
+            raise PeaStartException(repr(e))
+
+        self._store[pea_id]['pea'] = pea
+        self.logger.info(f'Started pea with pea_id {colored(pea_id, "cyan")}')
+        return pea_id
+
+    def _delete(self, pea_id: uuid.UUID):
+        """ Closes a Pea context & deletes from store """
+        if pea_id not in self._store:
+            raise KeyError(f'pea_id {pea_id} not found in store. please create one!')
+        pea = self._store.pop(pea_id)
+
+        if 'pea' in pea:
+            self._close(context=pea['pea'])
+
+        if 'files' in pea:
+            for current_file in pea['files']:
+                delete_meta_files_from_upload(current_file=current_file)
+
+        self.logger.info(f'Closed pea with pea_id {colored(pea_id, "cyan")}')
+
+
 flow_store = InMemoryFlowStore()
 pod_store = InMemoryPodStore()
+pea_store = InMemoryPeaStore()
