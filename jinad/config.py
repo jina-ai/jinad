@@ -11,7 +11,7 @@ class FastAPIConfig(BaseConfig):
     DESCRIPTION: str = 'REST API for creating/deleting Jina Flow'
     VERSION: str = '0.1.0'
     PREFIX: str = '/v1'
-    
+
 
 class OpenAPITags(BaseConfig):
     FLOW_API_TAGS: list = [{
@@ -25,6 +25,14 @@ class OpenAPITags(BaseConfig):
     POD_API_TAGS: list = [{
         "name": "Remote Pod Manager",
         "description": "API to invoke remote Pods (__should be used by Flow APIs only__)",
+        "externalDocs": {
+            "description": "Jina 101",
+            "url": "https://docs.jina.ai/chapters/101/.sphinx.html",
+        },
+    }]
+    PEA_API_TAGS: list = [{
+        "name": "Remote Pea Manager",
+        "description": "API to invoke remote Peas",
         "externalDocs": {
             "description": "Jina 101",
             "url": "https://docs.jina.ai/chapters/101/.sphinx.html",
@@ -46,8 +54,8 @@ class JinaDConfig(BaseConfig):
 
     @validator('CONTEXT')
     def name_must_contain_space(cls, value):
-        if value.lower() not in ['flow', 'pod']:
-            raise ValueError('CONTEXT must be either flow or pod')
+        if value.lower() not in ['flow', 'pod', 'pea']:
+            raise ValueError('CONTEXT must be either flow or pod or pea')
         return value.lower()
 
 
