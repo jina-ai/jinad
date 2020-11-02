@@ -1,4 +1,6 @@
 import requests
+import argparse
+from typing import Union
 from pydantic import create_model, validator, Field
 
 JINA_API_URL = 'https://api.jina.ai/latest'
@@ -31,29 +33,42 @@ def generate_validator(field: str, choices: list):
     return validator(field, allow_reuse=True)(validate_arg_choices)
 
 
-def get_pydantic_fields(module_args: dict):
-    """ Creates Pydantic fields from cli args """
+def get_pydantic_fields(config: Union[dict, argparse.ArgumentParser]):
     all_options = {}
     choices_validators = {}
 
-    for arg in module_args['options']:
-        arg_key = arg['name']
-        arg_type = arg['type']
+    if isinstance(config, dict):
+        for arg in config['options']:
+            arg_key = arg['name']
+            arg_type = arg['type']
+            if arg['choices']:
+                choices_validators[f'validator_for_{arg_key}'] = generate_validator(field=arg_key,
+                                                                                    choices=arg['choices'])
+            if arg_type == 'method':
+                arg_type = type(arg['default']) if arg['default'] else int
+            arg_type = 'str' if arg_type == 'FileType' else arg_type
 
-        if arg_type == 'method':
-            choices_validators[f'validator_for_{arg_key}'] = generate_validator(field=arg_key,
-                                                                                choices=arg['choices'])
-            if arg['default'] is None:
-                arg_type = int
-            else:
-                arg_type = type(arg['default'])
+            current_field = Field(default=arg['default'],
+                                  example=arg['default'],
+                                  description=arg['help'])
+            all_options[arg_key] = (arg_type, current_field)
 
-        if arg_type == 'FileType':
-            arg_type = 'str'
+    if isinstance(config, argparse.ArgumentParser):
+        # Ignoring first 3 as they're generic args
+        for arg in config._actions[3:]:
+            arg_key = arg.dest
+            arg_type = arg.type
+            if arg.choices:
+                choices_validators[f'validator_for_{arg_key}'] = generate_validator(field=arg_key,
+                                                                                    choices=arg.choices)
+            # This is to handle the Enum args (to check if it is a bound method)
+            if hasattr(arg_type, '__self__'):
+                arg_type = type(arg.default) if arg.default else int
 
-        current_field = Field(default=arg['default'],
-                              description=arg['help'])
-        all_options[arg_key] = (arg_type, current_field)
+            current_field = Field(default=arg.default,
+                                  example=arg.default,
+                                  description=arg.help)
+            all_options[arg_key] = (arg_type, current_field)
 
     return all_options, choices_validators
 
@@ -71,16 +86,27 @@ class PodPydanticConfig(PydanticConfig):
     }
 
 
-def build_pydantic_model(model_name: str = 'CustomModel', module: str = 'pod'):
-    """ Dynamic Pydantic model creator from jina cli args """
-    all_cli_args = get_latest_api()
-    module_args = get_module_args(all_args=all_cli_args,
-                                  module=module)
-    all_fields, field_validators = get_pydantic_fields(module_args=module_args)
+def build_pydantic_model(kind: str = 'local',
+                         model_name: str = 'CustomModel',
+                         module: str = 'pod'):
+    if kind == 'api':
+        all_cli_args = get_latest_api()
+        module_args = get_module_args(all_args=all_cli_args,
+                                      module=module)
+        all_fields, field_validators = get_pydantic_fields(config=module_args)
+
+    elif kind == 'local':
+        from jina.parser import set_pea_parser, set_pod_parser, set_flow_parser
+        if module == 'pod':
+            parser = set_pod_parser()
+        elif module == 'pea':
+            parser = set_pea_parser()
+        elif module == 'flow':
+            parser = set_flow_parser()
+        all_fields, field_validators = get_pydantic_fields(config=parser)
 
     config_class = PodPydanticConfig if module == 'pod' else PydanticConfig
-    custom_model = create_model(model_name,
-                                **all_fields,
-                                __config__=config_class,
-                                __validators__=field_validators)
-    return custom_model
+    return create_model(model_name,
+                        **all_fields,
+                        __config__=config_class,
+                        __validators__=field_validators)
