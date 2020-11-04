@@ -1,14 +1,14 @@
 import uuid
-from tempfile import SpooledTemporaryFile
+from argparse import Namespace
 from typing import List, Dict, Union
-from ruamel.yaml import YAML
 from contextlib import contextmanager
+from tempfile import SpooledTemporaryFile
 
+from ruamel.yaml import YAML
 from jina.flow import Flow
 from jina.helper import yaml, colored
 from jina.logging import JinaLogger
-from jina.peapods import Pea
-from jina.peapods.pod import MutablePod
+from jina.peapods import Pea, Pod
 from fastapi import UploadFile
 
 from helper import create_meta_files_from_upload, delete_meta_files_from_upload
@@ -69,8 +69,6 @@ class InMemoryFlowStore(InMemoryStore):
                 config: Union[str, SpooledTemporaryFile, List[PodModel]] = None,
                 files: List[UploadFile] = None):
         """ Creates Flow using List[PodModel] or yaml spec """
-        flow_id = uuid.uuid4()
-
         # This makes sure `uses` & `py_modules` are created locally in `cwd`
         # TODO: Handle file creation, deletion better
         if files:
@@ -106,6 +104,7 @@ class InMemoryFlowStore(InMemoryStore):
             self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
             raise FlowStartException(repr(e))
 
+        flow_id = uuid.uuid4()
         self._store[flow_id] = {}
         self._store[flow_id]['flow'] = flow
         self._store[flow_id]['files'] = files
@@ -154,17 +153,16 @@ class InMemoryPodStore(InMemoryStore):
 
     def _create(self,
                 pod_arguments: Dict):
-        """ Creates MutablePod via Flow """
-        pod_id = uuid.uuid4()
-        self._store[pod_id] = {}
-
+        """ Creates a Pod via Flow or via CLI """
         try:
-            pod = MutablePod(args=pod_arguments)
+            pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pod: {repr(e)}')
             raise PodStartException(repr(e))
 
+        pod_id = uuid.uuid4()
+        self._store[pod_id] = {}
         self._store[pod_id]['pod'] = pod
         self.logger.info(f'Started pod with pod_id {colored(pod_id, "cyan")}')
         return pod_id
@@ -190,9 +188,6 @@ class InMemoryPeaStore(InMemoryStore):
     # TODO: Merge this with InMemoryPodStore
     def _create(self,
                 pea_arguments: Dict):
-        pea_id = uuid.uuid4()
-        self._store[pea_id] = {}
-
         try:
             pea = Pea(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
@@ -200,6 +195,8 @@ class InMemoryPeaStore(InMemoryStore):
             self.logger.critical(f'Got following error while starting the pea: {repr(e)}')
             raise PeaStartException(repr(e))
 
+        pea_id = uuid.uuid4()
+        self._store[pea_id] = {}
         self._store[pea_id]['pea'] = pea
         self.logger.info(f'Started pea with pea_id {colored(pea_id, "cyan")}')
         return pea_id
