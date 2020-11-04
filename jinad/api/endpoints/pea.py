@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from store import pea_store
 from models.pea import PeaModel
-from helper import pea_dict_to_namespace, create_meta_files_from_upload
+from helper import basepea_to_namespace, create_meta_files_from_upload
 from excepts import HTTPException, PeaStartException
 from config import openapitags_config, hypercorn_config
 
@@ -62,7 +62,7 @@ async def _create(
     """
     Used to create a Pea on remote
     """
-    pea_arguments = pea_dict_to_namespace(args=pea_arguments)
+    pea_arguments = basepea_to_namespace(args=pea_arguments)
 
     with pea_store._session():
         try:

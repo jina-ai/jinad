@@ -77,15 +77,6 @@ class PydanticConfig:
     arbitrary_types_allowed = True
 
 
-class PodPydanticConfig(PydanticConfig):
-    schema_extra = {
-        "example": {
-            "name": "pod1",
-            "uses": "_pass"
-        }
-    }
-
-
 def build_pydantic_model(kind: str = 'local',
                          model_name: str = 'CustomModel',
                          module: str = 'pod'):
@@ -105,8 +96,7 @@ def build_pydantic_model(kind: str = 'local',
             parser = set_flow_parser()
         all_fields, field_validators = get_pydantic_fields(config=parser)
 
-    config_class = PodPydanticConfig if module == 'pod' else PydanticConfig
     return create_model(model_name,
                         **all_fields,
-                        __config__=config_class,
+                        __config__=PydanticConfig,
                         __validators__=field_validators)

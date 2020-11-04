@@ -6,6 +6,7 @@ from jina.peapods.pea import BasePea
 from jina.excepts import FlowTopologyError
 from fastapi import UploadFile
 
+from models.pod import PodModel
 from models.pea import PeaModel
 
 
@@ -38,7 +39,7 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser):
     return _args
 
 
-def pod_dict_to_namespace(args: Dict):
+def flowpod_to_namespace(args: Dict):
     from jina.parser import set_pod_parser
     parser = set_pod_parser()
     pod_args = {}
@@ -65,7 +66,17 @@ def pod_dict_to_namespace(args: Dict):
     return pod_args
 
 
-def pea_dict_to_namespace(args: PeaModel):
+def basepod_to_namespace(args: PodModel):
+    from jina.parser import set_pod_parser
+    parser = set_pod_parser()
+
+    if isinstance(args, PodModel):
+        pod_args = handle_enums(args=args.dict(),
+                                parser=parser)
+        return argparse.Namespace(**pod_args)
+
+
+def basepea_to_namespace(args: PeaModel):
     from jina.parser import set_pea_parser
     parser = set_pea_parser()
 

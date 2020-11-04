@@ -7,7 +7,7 @@ from jina.logging import JinaLogger
 from fastapi import status, APIRouter, Body, File, UploadFile
 from fastapi.responses import StreamingResponse
 
-from helper import pod_dict_to_namespace, create_meta_files_from_upload
+from helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload
 from models.pod import PodModel
 from store import pod_store
 from excepts import HTTPException, PodStartException
@@ -53,19 +53,47 @@ async def _upload(
 
 
 @router.put(
-    path='/pod',
-    summary='Create a MutablePod',
+    path='/pod/cli',
+    summary='Create an independent MutablePod',
     tags=[TAG]
 )
-async def _create(
+async def _create_independent(
+    pod_arguments: PodModel
+):
+    """
+    This is used to create an independent remote MutablePod which stays out of Flow context
+    """
+    pod_arguments = basepod_to_namespace(args=pod_arguments)
+
+    with pod_store._session():
+        try:
+            pod_id = pod_store._create(pod_arguments=pod_arguments)
+        except PodStartException as e:
+            raise HTTPException(status_code=404,
+                                detail=f'Pod couldn\'t get started:  {repr(e)}')
+        except Exception as e:
+            logger.error(f'Got an error while creating a pod {repr(e)}')
+            raise HTTPException(status_code=404,
+                                detail=f'Something went wrong')
+    return {
+        'status_code': status.HTTP_200_OK,
+        'pod_id': pod_id,
+        'status': 'started'
+    }
+
+
+@router.put(
+    path='/pod/flow',
+    summary='Create a MutablePod via Flow',
+    tags=[TAG]
+)
+async def _create_via_flow(
     pod_arguments: Dict
 ):
     """
-    Used to create a MutablePod on localhost.
-    This is usually a remote pod which gets triggered by a Flow context
+    This is used to create a remote MutablePod which gets triggered by a Flow context
 
     > Shouldn't be created with manual trigger
-    # TODO: Manual trigger support to be added
 
     Args: pod_arguments (Dict)
 
@@ -77,7 +105,7 @@ async def _create(
 
 
     """
-    pod_arguments = pod_dict_to_namespace(pod_arguments)
+    pod_arguments = flowpod_to_namespace(args=pod_arguments)
 
     with pod_store._session():
         try:
