@@ -2,27 +2,26 @@ import time
 import uuid
 from typing import Dict, List, Any
 
-from jina.peapods.pod import MutablePod
 from jina.logging import JinaLogger
 from fastapi import status, APIRouter, Body, File, UploadFile
 from fastapi.responses import StreamingResponse
 
-from helper import pod_dict_to_namespace, create_meta_files_from_upload
-from models.pod import PodModel
-from store import pod_store
-from excepts import HTTPException, PodStartException
+from store import pea_store
+from models.pea import PeaModel
+from helper import pea_dict_to_namespace, create_meta_files_from_upload
+from excepts import HTTPException, PeaStartException
 from config import openapitags_config, hypercorn_config
 
 
-TAG = openapitags_config.POD_API_TAGS[0]['name']
-logger = JinaLogger(context='👻 PODAPI')
+TAG = openapitags_config.PEA_API_TAGS[0]['name']
+logger = JinaLogger(context='👻 PEAAPI')
 router = APIRouter()
 
 
 @router.on_event('startup')
 async def startup():
     logger.info(f'Hypercorn + FastAPI running on {hypercorn_config.HOST}:{hypercorn_config.PORT}')
-    logger.info('Welcome to Jina daemon for remote pods')
+    logger.info('Welcome to Jina daemon for remote peas')
 
 
 @router.put(
@@ -35,8 +34,8 @@ async def _upload(
     pymodules_files: List[UploadFile] = File(())
 ):
     """
-
     """
+    # TODO: This is repetitive code. needs refactoring
     upload_status = 'nothing to upload'
     if uses_files:
         [create_meta_files_from_upload(current_file) for current_file in uses_files]
@@ -53,45 +52,31 @@ async def _upload(
 
 
 @router.put(
-    path='/pod',
-    summary='Create a MutablePod',
+    path='/pea',
+    summary='Create a Pea',
     tags=[TAG]
 )
 async def _create(
-    pod_arguments: Dict
+    pea_arguments: PeaModel
 ):
     """
-    Used to create a MutablePod on localhost.
-    This is usually a remote pod which gets triggered by a Flow context
-
-    > Shouldn't be created with manual trigger
-    # TODO: Manual trigger support to be added
-
-    Args: pod_arguments (Dict)
-
-        {
-            'head': PodModel,
-            'tail': PodModel,
-            'peas': [PodModel]
-        }
-
-
+    Used to create a Pea on remote
     """
-    pod_arguments = pod_dict_to_namespace(pod_arguments)
+    pea_arguments = pea_dict_to_namespace(args=pea_arguments)
 
-    with pod_store._session():
+    with pea_store._session():
         try:
-            pod_id = pod_store._create(pod_arguments=pod_arguments)
-        except PodStartException as e:
+            pea_id = pea_store._create(pea_arguments=pea_arguments)
+        except PeaStartException as e:
             raise HTTPException(status_code=404,
-                                detail=f'Pod couldn\'t get started:  {repr(e)}')
+                                detail=f'Pea couldn\'t get started:  {repr(e)}')
         except Exception as e:
-            logger.error(f'Got an error while creating a pod {repr(e)}')
+            logger.error(f'Got an error while creating a pea {repr(e)}')
             raise HTTPException(status_code=404,
                                 detail=f'Something went wrong')
     return {
         'status_code': status.HTTP_200_OK,
-        'pod_id': pod_id,
+        'pea_id': pea_id,
         'status': 'started'
     }
 
@@ -112,42 +97,42 @@ def streamer(generator):
     tags=[TAG]
 )
 def _log(
-    pod_id: uuid.UUID
+    pea_id: uuid.UUID
 ):
     """
-    Stream logs from remote pod using log_iterator (This will be changed!)
+    Stream logs from remote pea using log_iterator (This will be changed!)
     """
-    with pod_store._session():
+    with pea_store._session():
         try:
-            current_pod = pod_store._store[pod_id]['pod']
-            return StreamingResponse(streamer(current_pod.log_iterator))
+            current_pea = pea_store._store[pea_id]['pea']
+            return StreamingResponse(streamer(current_pea.log_iterator))
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f'Pod ID {pod_id} not found! Please create a new Flow')
+                                detail=f'Pea ID {pea_id} not found! Please create a new Pea')
 
 
 @router.delete(
-    path='/pod',
-    summary='Delete pod',
+    path='/pea',
+    summary='Close Pea context',
     tags=[TAG]
 )
 async def _delete(
-    pod_id: uuid.UUID
+    pea_id: uuid.UUID
 ):
-    """Close Pod context
+    """Close Pea context
     """
-    with pod_store._session():
+    with pea_store._session():
         try:
-            pod_store._delete(pod_id=pod_id)
+            pea_store._delete(pea_id=pea_id)
             return {
                 'status_code': status.HTTP_200_OK
             }
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f'Pod ID {pod_id} not found! Please create a new Pod')
+                                detail=f'Pea ID {pea_id} not found! Please create a new Pod')
 
 
 @router.on_event('shutdown')
 def _shutdown():
-    with pod_store._session():
-        pod_store._delete_all()
+    with pea_store._session():
+        pea_store._delete_all()
