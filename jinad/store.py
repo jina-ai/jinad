@@ -1,24 +1,20 @@
 import uuid
-from argparse import Namespace
-from typing import List, Dict, Union
 from contextlib import contextmanager
 from tempfile import SpooledTemporaryFile
+from typing import List, Dict, Union
 
-from ruamel.yaml import YAML
+from excepts import PeaFailToStart, FlowYamlParseException, FlowCreationException, \
+    FlowStartException, PodStartException, PeaStartException
+from fastapi import UploadFile
+from helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from jina.flow import Flow
 from jina.helper import yaml, colored
 from jina.logging import JinaLogger
 from jina.peapods import Pea, Pod
-from fastapi import UploadFile
-
-from helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from models.pod import PodModel
-from excepts import ExecutorFailToLoad, PeaFailToStart, FlowYamlParseException, FlowCreationException, \
-    FlowStartException, PodStartException, PeaStartException
 
 
 class InMemoryStore:
-
     _store = {}
     # TODO: Implement fastapi based oauth/bearer security here
     credentials = 'foo:bar'
@@ -151,8 +147,7 @@ class InMemoryFlowStore(InMemoryStore):
 
 class InMemoryPodStore(InMemoryStore):
 
-    def _create(self,
-                pod_arguments: Dict):
+    def _create(self, pod_arguments: Dict):
         """ Creates a Pod via Flow or via CLI """
         try:
             pod = Pod(args=pod_arguments, allow_remote=False)
@@ -185,6 +180,7 @@ class InMemoryPodStore(InMemoryStore):
 
 class InMemoryPeaStore(InMemoryStore):
     """ Creates Pea on remote """
+
     # TODO: Merge this with InMemoryPodStore
     def _create(self,
                 pea_arguments: Dict):
