@@ -44,6 +44,16 @@ nohup python3 main.py &
 
 Detach the screen session by `CTRL+a` `d`. Afterwards, you can safely close your terminal. Now we are ready to set up pods on this instance from either your local machine or another remote instance.
 
+To verify whether jinad is properly running, one can use the following lines
+
+```bash
+export JINAD_IP=3.17.167.247
+export JINAD_PORT=8000
+curl -s -o /dev/null -w "%{http_code}"  http://$JINAD_IP:$JINAD_PORT/v1/alive
+```
+
+Alternatives, open `http://3.17.167.247:8000/docs` on your browser and you will see the API documentations of jinad.
+
 **Note** that `JINAD_CONTEXT` is used to set up the jinad context. The possible values are `flow`, `pod`, and `pea`. When we use `JINAD_CONTEXT=pod`, it will set jinad to create Pods. 
 
 ## Use Case 1: Use Pods on cloud from a local flow
