@@ -1,14 +1,13 @@
-# jinad
-
-Jina Flow Management API
+# jinad - The Daemon to manage Jina remotely
 
 
 ## Set up jinad on AWS
 
+
 1. Create a new instance on AWS and log into the instance
 
 ```bash
-ssh -i your.pem ubuntu@ec2-3-17-167-247.us-east-2.compute.amazonaws.com
+ssh -i your.pem ubuntu@ec2-1-2-3-4.us-east-2.compute.amazonaws.com
 ```
 
 2. Install the required packages
@@ -33,37 +32,97 @@ cd jinad/
 pip3 install -r jinad/requirements.txt
 ```
 
-5. Keep jina running with `screen`
+5. Create a systemd service
 
-```bash
-screen
-cd ../jinad/jinad
-export JINAD_CONTEXT=pod
-nohup python3 main.py &
+```sudo bash -c 'cat  << EOF > /etc/systemd/system/jinad.service
+[Unit]
+Description=jina remote manager
+After=network.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/jinad/jinad
+Environment=JINAD_PORT=8000
+Environment=JINAD_CONTEXT=pod
+ExecStart=/usr/bin/python3.8 main.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF'
 ```
 
-Detach the screen session by `CTRL+a` `d`. Afterwards, you can safely close your terminal. Now we are ready to set up pods on this instance from either your local machine or another remote instance.
+6. Start the service to be constantly running in the background
+```
+sudo systemctl daemon-reload
+sudo systemctl start jinad.service
 
-To verify whether jinad is properly running, one can use the following lines
+```
+
+7. To follow the logs via journald
+```
+journalctl -u jinad -f
+```
+
+8. Verify whether jinad is properly running, one can use the following lines
 
 ```bash
-export JINAD_IP=3.17.167.247
+export JINAD_IP=1.2.3.4
 export JINAD_PORT=8000
 curl -s -o /dev/null -w "%{http_code}"  http://$JINAD_IP:$JINAD_PORT/v1/alive
 ```
 
-Alternatives, open `http://3.17.167.247:8000/docs` on your browser and you will see the API documentations of jinad.
+Alternatives, open `http://1.2.3.4:8000/docs` on your browser and you will see the API documentations of jinad.
 
-**Note** that `JINAD_CONTEXT` is used to set up the jinad context. The possible values are `flow`, `pod`, and `pea`. When we use `JINAD_CONTEXT=pod`, it will set jinad to create Pods. 
 
-## Use Case 1: Use Pods on cloud from a local flow
+> env `JINAD_CONTEXT` is used to set up the jinad context. The possible values are `flow` (default), `pod`, and `pea`. When we use `JINAD_CONTEXT=pod`, it will set jinad to create Pods.
+
+> env `JINAD_PORT` is used to set a port on which Hypercorn runs (default: 8000)
+
+
+
+# Use cases
+
+### 1: Create Pods on remote from a local Flow
 
 ```python
 from jina.flow import Flow
-from jina.enums import PeaRoleType
-f = Flow().add(uses='_pass', host='3.17.167.247', port_expose=8000, role=PeaRoleType.SINGLETON)
+f = Flow().add(uses='_pass', host='1.2.3.4', port_expose=8000)
 with f:
     f.dry_run()
 ```
 
-`3.17.167.247` is the public ip of your instance. By default, jinad is listening to the port `8000` 
+> Make sure `jinad` is running in `pod` context
+
+> `1.2.3.4` is the public ip of your instance. By default, jinad is listening to the port `8000`
+
+
+### 2: Create Pods on remote using Jina CLI
+
+```
+jina pod --host 1.2.3.4 --port-expose 8000 --role SINGLETON
+```
+
+> Make sure `jinad` is running in `pod` context
+
+> we need to pass a valid `role` for this (pydantic issue to be fixed)
+
+
+### 3: Create Peas on remote using Jina CLI
+
+```
+jina pea --host 1.2.3.4 --port-expose 8000 --role SINGLETON
+```
+
+> Make sure `jinad` is running in `pea` context
+
+> we need to pass a valid `role` for this (pydantic issue to be fixed)
+
+### 4: Create a Flow on remote
+
+```
+curl -s --request PUT "http://1.2.3.4:8000/v1/flow/yaml" -H  "accept: application/json" -H  "Content-Type: multipart/form-data" -F "uses_files=@helloworld.encoder.yml" -F "uses_files=@helloworld.indexer.yml" -F "pymodules_files=@components.py" -F "yamlspec=@helloworld.flow.index.yml"
+```
+
+> Make sure `jinad` is running in `flow` context
+
