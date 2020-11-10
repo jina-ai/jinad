@@ -53,6 +53,7 @@ class OpenAPITags(BaseConfig):
 
 
 class HypercornConfig(BaseConfig):
+    # TODO: check if HOST can be a ipaddress.IPv4Address in hypercorn
     HOST: str = '0.0.0.0'
     PORT: int = 8000
 
@@ -61,7 +62,7 @@ class JinaDConfig(BaseConfig):
     CONTEXT: str = 'all'
 
     @validator('CONTEXT')
-    def name_must_contain_space(cls, value):
+    def validate_name(cls, value):
         if value.lower() not in ['all', 'flow', 'pod', 'pea']:
             raise ValueError('CONTEXT must be either all, flow or pod or pea')
         return value.lower()

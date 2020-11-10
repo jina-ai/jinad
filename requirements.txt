@@ -4,3 +4,4 @@ hypercorn
 pydantic
 python-multipart
 requests
+pytest
