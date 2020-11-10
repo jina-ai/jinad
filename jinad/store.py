@@ -40,11 +40,11 @@ class InMemoryStore:
     # TODO: implement login-logout here to manage session token
     def _login(self, creds):
         token = hash(creds)
-        self.logger.info(f'LOGIN: {token}')
+        self.logger.debug(f'LOGIN: {token}')
         return token
 
     def _logout(self, token):
-        self.logger.info(f'LOGOUT: {token}')
+        self.logger.debug(f'LOGOUT: {token}')
 
     def _create(self):
         raise NotImplementedError

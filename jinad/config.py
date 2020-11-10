@@ -7,15 +7,23 @@ class BaseConfig(BaseSettings):
 
 
 class FastAPIConfig(BaseConfig):
-    NAME: str = 'Jina Flow Manager'
-    DESCRIPTION: str = 'REST API for creating/deleting Jina Flow'
+    NAME: str = 'Jina Remote Manager'
+    DESCRIPTION: str = 'REST API for managing Jina on Remote'
     VERSION: str = '0.1.0'
     PREFIX: str = '/v1'
 
 
 class OpenAPITags(BaseConfig):
+    API_TAGS: list = [{
+        "name": "Jina Remote Management",
+        "description": "API to invoke remote Flows/Pods/Peas",
+        "externalDocs": {
+            "description": "Jina Remote Context Manager",
+            "url": "https://docs.jina.ai/",
+        },
+    }],
     FLOW_API_TAGS: list = [{
-        "name": "Flow Manager",
+        "name": "Remote Flow Manager",
         "description": "API to invoke local/remote Flows",
         "externalDocs": {
             "description": "Jina Flow Context Manager",
@@ -50,12 +58,12 @@ class HypercornConfig(BaseConfig):
 
 
 class JinaDConfig(BaseConfig):
-    CONTEXT: str = 'flow'
+    CONTEXT: str = 'all'
 
     @validator('CONTEXT')
     def name_must_contain_space(cls, value):
-        if value.lower() not in ['flow', 'pod', 'pea']:
-            raise ValueError('CONTEXT must be either flow or pod or pea')
+        if value.lower() not in ['all', 'flow', 'pod', 'pea']:
+            raise ValueError('CONTEXT must be either all, flow or pod or pea')
         return value.lower()
 
 
