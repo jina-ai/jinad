@@ -5,6 +5,8 @@ from fastapi.testclient import TestClient
 
 # adding jinad root to sys path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)) + '/../jinad')
+from jinad.config import fastapi_config
+PREFIX = fastapi_config.PREFIX
 
 
 @pytest.fixture()
@@ -21,38 +23,38 @@ def common_endpoints():
         ('swagger_ui_html', '/docs'),
         ('swagger_ui_redirect', '/docs/oauth2-redirect'),
         ('redoc_html', '/redoc'),
-        ('_status', '/v1/alive')
+        ('_status', f'{PREFIX}/alive')
     ]
 
 
 @pytest.fixture(scope='session')
 def flow_endpoints():
     return [
-        ('_create_from_pods', '/v1/flow/pods'),
-        ('_create_from_yaml', '/v1/flow/yaml'),
-        ('_fetch', '/v1/flow/{flow_id}'),
-        ('_ping', '/v1/ping'),
-        ('_delete', '/v1/flow'),
-        ('_websocket_logs', '/v1/wslogs')
+        ('_create_from_pods', f'{PREFIX}/flow/pods'),
+        ('_create_from_yaml', f'{PREFIX}/flow/yaml'),
+        ('_fetch', f'{PREFIX}/flow/{{flow_id}}'),
+        ('_ping', f'{PREFIX}/ping'),
+        ('_delete', f'{PREFIX}/flow'),
+        ('_websocket_logs', f'{PREFIX}/wslogs')
     ]
 
 
 @pytest.fixture(scope='session')
 def pod_endpoints():
     return [
-        ('_upload', '/v1/upload'),
-        ('_create_independent', '/v1/pod/cli'),
-        ('_create_via_flow', '/v1/pod/flow'),
-        ('_log', '/v1/log'),
-        ('_delete', '/v1/pod')
+        ('_upload', f'{PREFIX}/upload'),
+        ('_create_independent', f'{PREFIX}/pod/cli'),
+        ('_create_via_flow', f'{PREFIX}/pod/flow'),
+        ('_log', f'{PREFIX}/log'),
+        ('_delete', f'{PREFIX}/pod')
     ]
 
 
 @pytest.fixture(scope='session')
 def pea_endpoints():
     return [
-        ('_upload', '/v1/pea/upload'),
-        ('_create', '/v1/pea'),
-        ('_log', '/v1/log'),
-        ('_delete', '/v1/pea')
+        ('_upload', f'{PREFIX}/pea/upload'),
+        ('_create', f'{PREFIX}/pea'),
+        ('_log', f'{PREFIX}/log'),
+        ('_delete', f'{PREFIX}/pea')
     ]
