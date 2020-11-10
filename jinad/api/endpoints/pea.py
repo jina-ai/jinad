@@ -1,20 +1,20 @@
 import time
 import uuid
-from typing import Dict, List, Any
+from typing import List
 
-from jina.logging import JinaLogger
-from fastapi import status, APIRouter, Body, File, UploadFile
+from fastapi import status, APIRouter, File, UploadFile
 from fastapi.responses import StreamingResponse
+from jina.logging import JinaLogger
 
-from store import pea_store
-from models.pea import PeaModel
 from helper import basepea_to_namespace, create_meta_files_from_upload
-from excepts import HTTPException, PeaStartException
+from models.pea import PeaModel
+from store import pea_store
 from config import openapitags_config
-
+from excepts import HTTPException, PeaStartException
 
 logger = JinaLogger(context='👻 PEAAPI')
 router = APIRouter()
+TAG = openapitags_config.PEA_API_TAGS[0]['name']
 
 
 @router.put(

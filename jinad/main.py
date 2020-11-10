@@ -1,6 +1,5 @@
 import uvloop
 import asyncio
-from typing import Any
 from collections import namedtuple
 
 from fastapi import FastAPI
