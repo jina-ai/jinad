@@ -205,7 +205,7 @@ def _ping(
 
     Note: Make sure Flow is running
     # TODO: check if gateway is REST & connect via REST
-
+    # TODO: why is this not async def?
     """
     try:
         py_client(port_expose=port,

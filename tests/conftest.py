@@ -9,8 +9,8 @@ from jinad.config import fastapi_config
 PREFIX = fastapi_config.PREFIX
 
 
-@pytest.fixture()
-def client():
+@pytest.fixture(scope='session')
+def fastapi_client():
     from jinad.main import get_app
     app = get_app()
     client = TestClient(app)
