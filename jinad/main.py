@@ -1,6 +1,5 @@
 import uvloop
 import asyncio
-from typing import Any
 
 from fastapi import FastAPI
 from hypercorn.config import Config

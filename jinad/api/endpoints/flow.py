@@ -1,21 +1,16 @@
-import os
-import uuid
 import json
-import tempfile
-from typing import List, Union, Optional
+import uuid
+from typing import List, Union
 
-from ruamel.yaml import YAML
-from jina.flow import Flow
+from fastapi import status, APIRouter, Body, Response, WebSocket, File, UploadFile
 from jina.clients import py_client
 from jina.logging import JinaLogger
-from fastapi import status, APIRouter, Body, Response, WebSocket, File, UploadFile
 
 from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException, GRPCServerError
 from config import openapitags_config, hypercorn_config
-
 
 logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()
@@ -34,8 +29,8 @@ async def startup():
     tags=[TAG]
 )
 def _create_from_pods(
-    pods: Union[List[PodModel]] = Body(...,
-                                       example=json.loads(PodModel().json()))
+        pods: Union[List[PodModel]] = Body(...,
+                                           example=json.loads(PodModel().json()))
 ):
     """
     Build a Flow using a list of `PodModel`
@@ -77,9 +72,9 @@ def _create_from_pods(
     tags=[TAG]
 )
 def _create_from_yaml(
-    yamlspec: UploadFile = File(...),
-    uses_files: List[UploadFile] = File(()),
-    pymodules_files: List[UploadFile] = File(())
+        yamlspec: UploadFile = File(...),
+        uses_files: List[UploadFile] = File(()),
+        pymodules_files: List[UploadFile] = File(())
 ):
     """
     Build a flow using [Flow YAML](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
@@ -177,8 +172,8 @@ def _create_from_yaml(
     tags=[TAG]
 )
 async def _fetch(
-    flow_id: uuid.UUID,
-    yaml_only: bool = False
+        flow_id: uuid.UUID,
+        yaml_only: bool = False
 ):
     """
     Get Flow information using `flow_id`.
@@ -213,8 +208,8 @@ async def _fetch(
     tags=[TAG]
 )
 def _ping(
-    host: str,
-    port: int
+        host: str,
+        port: int
 ):
     """
     Ping to check if we can connect to gateway via gRPC `host:port`
@@ -241,7 +236,7 @@ def _ping(
     tags=[TAG]
 )
 def _delete(
-    flow_id: uuid.UUID
+        flow_id: uuid.UUID
 ):
     """
     Close Flow context
@@ -255,7 +250,6 @@ def _delete(
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f'Flow ID {flow_id} not found! Please create a new Flow')
-
 
 
 @router.websocket(
