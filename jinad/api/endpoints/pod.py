@@ -9,7 +9,7 @@ from jina.logging import JinaLogger
 from helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload
 from models.pod import PodModel
 from store import pod_store
-from config import openapitags_config, hypercorn_config
+from config import openapitags_config
 from excepts import HTTPException, PodStartException
 
 logger = JinaLogger(context='👻 PODAPI')
@@ -17,16 +17,9 @@ router = APIRouter()
 TAG = openapitags_config.POD_API_TAGS[0]['name']
 
 
-@router.on_event('startup')
-async def startup():
-    logger.info(f'Hypercorn + FastAPI running on {hypercorn_config.HOST}:{hypercorn_config.PORT}')
-    logger.info('Welcome to Jina daemon for remote pods')
-
-
 @router.put(
     path='/upload',
     summary='Upload pod context yamls & pymodules',
-    tags=[TAG]
 )
 async def _upload(
     uses_files: List[UploadFile] = File(()),
@@ -53,7 +46,6 @@ async def _upload(
 @router.put(
     path='/pod/cli',
     summary='Create an independent MutablePod',
-    tags=[TAG]
 )
 async def _create_independent(
     pod_arguments: PodModel
@@ -83,7 +75,6 @@ async def _create_independent(
 @router.put(
     path='/pod/flow',
     summary='Create a MutablePod via Flow',
-    tags=[TAG]
 )
 async def _create_via_flow(
     pod_arguments: Dict
@@ -135,7 +126,6 @@ def streamer(generator):
 @router.get(
     path='/log',
     summary='Stream log using log_iterator',
-    tags=[TAG]
 )
 def _log(
     pod_id: uuid.UUID
@@ -155,7 +145,6 @@ def _log(
 @router.delete(
     path='/pod',
     summary='Delete pod',
-    tags=[TAG]
 )
 async def _delete(
     pod_id: uuid.UUID

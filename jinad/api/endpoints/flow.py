@@ -10,23 +10,15 @@ from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException, GRPCServerError
-from config import openapitags_config, hypercorn_config
+from config import openapitags_config
 
 logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()
-TAG = openapitags_config.FLOW_API_TAGS[0]['name']
-
-
-@router.on_event('startup')
-async def startup():
-    logger.info(f'Hypercorn + FastAPI running on {hypercorn_config.HOST}:{hypercorn_config.PORT}')
-    logger.info('Welcome to Jina daemon. You can start playing with Flows!')
 
 
 @router.put(
     path='/flow/pods',
     summary='Build & start a Flow using Pods',
-    tags=[TAG]
 )
 def _create_from_pods(
         pods: Union[List[PodModel]] = Body(...,
@@ -69,7 +61,6 @@ def _create_from_pods(
 @router.put(
     path='/flow/yaml',
     summary='Build & start a Flow using YAML',
-    tags=[TAG]
 )
 def _create_from_yaml(
         yamlspec: UploadFile = File(...),
@@ -169,7 +160,6 @@ def _create_from_yaml(
 @router.get(
     path='/flow/{flow_id}',
     summary='Get Flow information',
-    tags=[TAG]
 )
 async def _fetch(
         flow_id: uuid.UUID,
@@ -205,7 +195,6 @@ async def _fetch(
 @router.get(
     path='/ping',
     summary='Connect to Flow gateway',
-    tags=[TAG]
 )
 def _ping(
         host: str,
@@ -233,7 +222,6 @@ def _ping(
 @router.delete(
     path='/flow',
     summary='Close Flow context',
-    tags=[TAG]
 )
 def _delete(
         flow_id: uuid.UUID
