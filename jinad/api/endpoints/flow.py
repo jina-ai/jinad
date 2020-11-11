@@ -10,7 +10,6 @@ from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException, GRPCServerError
-from config import openapitags_config
 
 logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()
