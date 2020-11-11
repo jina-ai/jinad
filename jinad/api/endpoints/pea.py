@@ -9,12 +9,10 @@ from jina.logging import JinaLogger
 from helper import basepea_to_namespace, create_meta_files_from_upload
 from models.pea import PeaModel
 from store import pea_store
-from config import openapitags_config
 from excepts import HTTPException, PeaStartException
 
 logger = JinaLogger(context='👻 PEAAPI')
 router = APIRouter()
-TAG = openapitags_config.PEA_API_TAGS[0]['name']
 
 
 @router.put(
@@ -118,7 +116,7 @@ async def _delete(
             }
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f'Pea ID {pea_id} not found! Please create a new Pod')
+                                detail=f'Pea ID {pea_id} not found! Please create a new Pea')
 
 
 @router.on_event('shutdown')
