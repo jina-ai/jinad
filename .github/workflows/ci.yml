@@ -40,5 +40,5 @@ jobs:
           pip install -r requirements.txt
       - name: Test with pytest
         run: |
-          pytest --force-flaky --min-passes 1 --max-runs 5 -n 1 --timeout=120 -v tests/unit
+          pytest --force-flaky --min-passes 1 --max-runs 5 -v tests/unit
         timeout-minutes: 30
