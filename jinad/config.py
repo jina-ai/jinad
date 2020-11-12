@@ -21,7 +21,7 @@ class OpenAPITags(BaseConfig):
             "description": "Jina Remote Context Manager",
             "url": "https://docs.jina.ai/",
         },
-    }],
+    }]
     FLOW_API_TAGS: list = [{
         "name": "Remote Flow Manager",
         "description": "API to invoke local/remote Flows",
