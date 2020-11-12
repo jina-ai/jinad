@@ -10,7 +10,7 @@ from models.pod import PodModel
 def get_enum_defaults(parser: argparse.ArgumentParser):
     """ Helper function to get all args that have Enum default values """
     from enum import Enum
-    all_args = parser.parse_args()
+    all_args = parser.parse_args([])
     enum_args = {}
     for key in vars(all_args):
         if isinstance(parser.get_default(key), Enum):
@@ -37,6 +37,7 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser):
 
 
 def flowpod_to_namespace(args: Dict):
+    # TODO: combine all 3 to_namespace methods
     from jina.parser import set_pod_parser
     parser = set_pod_parser()
     pod_args = {}
