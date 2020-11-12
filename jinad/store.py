@@ -71,6 +71,7 @@ class InMemoryFlowStore(InMemoryStore):
         if files:
             [create_meta_files_from_upload(current_file) for current_file in files]
 
+        # TODO: Think how to add `flow_id` as `log_id` if yaml is coming as input
         flow_id = uuid.uuid4()
 
         # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
