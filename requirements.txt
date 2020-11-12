@@ -4,5 +4,6 @@ hypercorn
 pydantic
 python-multipart
 requests
+flaky
 pytest
 pytest-asyncio
