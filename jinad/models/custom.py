@@ -64,7 +64,8 @@ def get_pydantic_fields(config: Union[dict, argparse.ArgumentParser]):
             # This is to handle the Enum args (to check if it is a bound method)
             if hasattr(arg_type, '__self__'):
                 arg_type = type(arg.default) if arg.default else int
-
+            elif isinstance(arg_type, argparse.FileType):
+                arg_type = str
             current_field = Field(default=arg.default,
                                   example=arg.default,
                                   description=arg.help)
