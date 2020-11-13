@@ -2,15 +2,15 @@ import uuid
 import asyncio
 
 from fastapi import APIRouter
-
 from sse_starlette.sse import EventSourceResponse
 
+from config import log_config
 
 router = APIRouter()
 
 
 @router.get(
-    path='/log/{id}',
+    path='/log/{log_id}',
     summary='Stream logs from folder where fluentd stores',
 )
 async def _log(
@@ -24,7 +24,7 @@ async def _log(
     :param log_id: The log identifier `flow_id`, `pod_id` or `pea_id` from which to stream logs
     :return:
     """
-    file_path = f'/tmp/jina-log/{log_id}/log.log'
+    file_path = f'{log_config.LOG_BASE_PATH}/{log_id}/log.log'
 
     async def _log_stream(file):
         # fluentd creates files under this path with some tag based on day, so as temp solution,
