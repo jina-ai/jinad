@@ -1,9 +1,10 @@
 import uuid
-import time
+import asyncio
 
 from fastapi import APIRouter
 
-from fastapi.responses import StreamingResponse
+from sse_starlette.sse import EventSourceResponse
+
 
 router = APIRouter()
 
@@ -12,7 +13,7 @@ router = APIRouter()
     path='/log/{id}',
     summary='Stream logs from folder where fluentd stores',
 )
-def _log(
+async def _log(
         log_id: uuid.UUID
 ):
     # TODO: How to ever stop this iteration?
@@ -25,7 +26,7 @@ def _log(
     """
     file_path = f'/tmp/jina-log/{log_id}/log.log'
 
-    def _log_stream(file):
+    async def _log_stream(file):
         # fluentd creates files under this path with some tag based on day, so as temp solution,
         # just get the first file matching this patter once it appears
         with open(file) as fp:
@@ -36,6 +37,6 @@ def _log(
                 if line:
                     yield f'data: {line}\n\n'
                 else:
-                    time.sleep(0.1)
+                    await asyncio.sleep(0.1)
 
-    return StreamingResponse(_log_stream(file_path), media_type='text/event-stream')
+    return EventSourceResponse(_log_stream(file_path), media_type='text/event-stream')
