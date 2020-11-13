@@ -14,6 +14,7 @@ def fastapi_client():
     from jinad.main import get_app
     app = get_app()
     client = TestClient(app)
+    return client
 
 
 @pytest.fixture(scope='session')

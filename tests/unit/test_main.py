@@ -1,5 +1,3 @@
-import sys
-import pytest
 from jinad.main import get_app, jinad_config
 
 

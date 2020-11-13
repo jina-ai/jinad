@@ -96,6 +96,7 @@ class InMemoryFlowStore(InMemoryStore):
                 raise FlowCreationException
 
         try:
+            flow.args.log_id = flow_id
             flow = self._start(context=flow)
         except PeaFailToStart as e:
             self.logger.critical(f'Flow couldn\'t get started - Invalid Pod {repr(e)} ')
@@ -157,8 +158,8 @@ class InMemoryPodStore(InMemoryStore):
         pod_id = uuid.uuid4()
 
         try:
-            if 'log_id' not in pod_arguments:
-                pod_arguments['log_id'] = pod_id
+            # force log_id so that it can be queried from RemotePod with the remote_id
+            pod_arguments['log_id'] = pod_id
             pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
@@ -195,8 +196,8 @@ class InMemoryPeaStore(InMemoryStore):
         pea_id = uuid.uuid4()
 
         try:
-            if 'log_id' not in pea_arguments:
-                pea_arguments['log_id'] = pea_id
+            # force log_id so that it can be queried from Flow with the remote_pea
+            pea_arguments['log_id'] = pea_id
             pea = Pea(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:

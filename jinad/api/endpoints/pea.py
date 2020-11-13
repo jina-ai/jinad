@@ -1,4 +1,3 @@
-import time
 import uuid
 from typing import List
 
@@ -67,16 +66,6 @@ async def _create(
         'pea_id': pea_id,
         'status': 'started'
     }
-
-
-def streamer(generator):
-    try:
-        for i in generator:
-            yield i
-            time.sleep(.001)
-
-    except GeneratorExit:
-        logger.info("Exiting from Pod log_iterator")
 
 
 @router.delete(
