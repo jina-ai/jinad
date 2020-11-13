@@ -34,7 +34,8 @@ pip3 install -r jinad/requirements.txt
 
 5. Create a systemd service
 
-```sudo bash -c 'cat  << EOF > /etc/systemd/system/jinad.service
+```
+sudo bash -c 'cat  << EOF > /etc/systemd/system/jinad.service
 [Unit]
 Description=jina remote manager
 After=network.target
