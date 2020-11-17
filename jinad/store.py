@@ -180,7 +180,7 @@ class InMemoryPodStore(InMemoryStore):
 
 
 class InMemoryPeaStore(InMemoryStore):
-    """ Creates Pea on remote """
+    """ Creates Pea on remote  """
 
     # TODO: Merge this with InMemoryPodStore
     def _create(self,
