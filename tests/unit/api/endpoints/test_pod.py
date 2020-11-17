@@ -1,6 +1,5 @@
 import uuid
 import pytest
-from fastapi import UploadFile
 
 from api.endpoints import pod
 
