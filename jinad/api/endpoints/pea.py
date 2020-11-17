@@ -93,7 +93,7 @@ def _log(
     with pea_store._session():
         try:
             current_pea = pea_store._store[pea_id]['pea']
-            return StreamingResponse(streamer(dummy_generator))
+            return StreamingResponse(streamer(dummy_generator()))
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f'Pea ID {pea_id} not found! Please create a new Pea')

@@ -136,7 +136,7 @@ def _log(
     with pod_store._session():
         try:
             current_pod = pod_store._store[pod_id]['pod']
-            return StreamingResponse(streamer(dummy_generator))
+            return StreamingResponse(streamer(dummy_generator()))
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f'Pod ID {pod_id} not found! Please create a new Flow')
