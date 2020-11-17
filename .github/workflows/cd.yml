@@ -18,13 +18,13 @@ jobs:
       - name: Setup docker environment
         run: |
             echo ${{ steps.buildx.outputs.platforms }}
-            echo ::set-env name=VCS_REF::$(git rev-parse --short HEAD)
-            echo ::set-env name=BUILD_DATE::$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+            echo "VCS_REF=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+            echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
       - name: Upload to Docker Registry
         uses: elgohr/Publish-Docker-Github-Action@master
         with:
           name: jinaai/jinad
           username: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
           password: ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
-          dockerfile: Dockerfiles/debianx.Dockerfile
+          dockerfile: Dockerfile
           buildargs: BUILD_DATE, VCS_REF
