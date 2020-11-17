@@ -92,3 +92,9 @@ def create_meta_files_from_upload(current_file: UploadFile):
 def delete_meta_files_from_upload(current_file: UploadFile):
     if os.path.isfile(current_file.filename):
         os.remove(current_file.filename)
+
+
+def dummy_generator():
+    while True:
+        import time; time.sleep(1)
+        yield b"fake it, until we make it"
