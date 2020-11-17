@@ -2,6 +2,11 @@ FROM python:3.7.6-slim
 
 ARG VCS_REF
 ARG BUILD_DATE
+ARG JINAD_PORT=8000
+ARG JINAD_CONTEXT=all
+
+ENV JINAD_PORT ${JINAD_PORT}
+ENV JINAD_CONTEXT ${JINAD_CONTEXT}
 
 LABEL org.opencontainers.image.created=$BUILD_DATE \
       org.opencontainers.image.authors="dev-team@jina.ai" \
@@ -20,7 +25,5 @@ ADD README.md requirements.txt ./
 ADD jinad ./jinad
 
 RUN pip install -r requirements.txt
-
-WORKDIR /jinad
 
 ENTRYPOINT ["python", "jinad/main.py"]
