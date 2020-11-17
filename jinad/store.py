@@ -43,7 +43,7 @@ class InMemoryStore:
     def _logout(self, token):
         self.logger.debug(f'LOGOUT: {token}')
 
-    def _create(self):
+    def _create(self, **kwargs):
         raise NotImplementedError
 
     def _start(self, context):
@@ -52,7 +52,7 @@ class InMemoryStore:
     def _close(self, context):
         context.close()
 
-    def _delete(self):
+    def _delete(self, id: uuid.UUID):
         raise NotImplementedError
 
     def _delete_all(self):
@@ -71,7 +71,11 @@ class InMemoryFlowStore(InMemoryStore):
         if files:
             [create_meta_files_from_upload(current_file) for current_file in files]
 
+        # TODO: Think how to add `flow_id` as `log_id` if yaml is coming as input
+        flow_id = uuid.uuid4()
+
         # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
+        # I think this needs to be handled by some `FlowBuilder` class, transfrom a yaml_load to a config
         if isinstance(config, str) or isinstance(config, SpooledTemporaryFile):
             yamlspec = config.read().decode() if isinstance(config, SpooledTemporaryFile) else config
             try:
@@ -83,7 +87,8 @@ class InMemoryFlowStore(InMemoryStore):
 
         if isinstance(config, list):
             try:
-                flow = Flow()
+                flow = Flow(log_id=flow_id)
+                # it is strange to build from a given flow, it seems like a lazy construction pattern could be used?
                 flow = self._build_with_pods(flow=flow,
                                              pod_args=config)
             except Exception as e:
@@ -101,7 +106,6 @@ class InMemoryFlowStore(InMemoryStore):
             self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
             raise FlowStartException(repr(e))
 
-        flow_id = uuid.uuid4()
         self._store[flow_id] = {}
         self._store[flow_id]['flow'] = flow
         self._store[flow_id]['files'] = files
@@ -150,14 +154,17 @@ class InMemoryPodStore(InMemoryStore):
 
     def _create(self, pod_arguments: Dict):
         """ Creates a Pod via Flow or via CLI """
+        pod_id = uuid.uuid4()
+
         try:
+            if 'log_id' not in pod_arguments:
+                pod_arguments['log_id'] = pod_id
             pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pod: {repr(e)}')
             raise PodStartException(repr(e))
 
-        pod_id = uuid.uuid4()
         self._store[pod_id] = {}
         self._store[pod_id]['pod'] = pod
         self.logger.info(f'Started pod with pod_id {colored(pod_id, "cyan")}')
@@ -185,14 +192,17 @@ class InMemoryPeaStore(InMemoryStore):
     # TODO: Merge this with InMemoryPodStore
     def _create(self,
                 pea_arguments: Dict):
+        pea_id = uuid.uuid4()
+
         try:
+            if 'log_id' not in pea_arguments:
+                pea_arguments['log_id'] = pea_id
             pea = Pea(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pea: {repr(e)}')
             raise PeaStartException(repr(e))
 
-        pea_id = uuid.uuid4()
         self._store[pea_id] = {}
         self._store[pea_id]['pea'] = pea
         self.logger.info(f'Started pea with pea_id {colored(pea_id, "cyan")}')
