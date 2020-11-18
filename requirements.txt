@@ -7,4 +7,3 @@ requests
 flaky
 pytest
 pytest-asyncio
-sse-starlette
