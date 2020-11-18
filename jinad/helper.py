@@ -24,7 +24,7 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser):
     _args = args.copy()
 
     if 'log_config' in _args:
-        _args.pop('log_config')
+        _args['log_config'] = parser.get_default('--log-config')
 
     for key, value in args.items():
         if key in default_enums:

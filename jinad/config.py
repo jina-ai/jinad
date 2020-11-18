@@ -70,7 +70,7 @@ class JinaDConfig(BaseConfig):
 
 class LogConfig(BaseConfig):
     # TODO: Read config from some file
-    LOG_BASE_PATH: str = '/tmp/jina-log'
+    PATH: str = '/tmp/jina-log/%s/log.log'
 
 
 jinad_config = JinaDConfig()
