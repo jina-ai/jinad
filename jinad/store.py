@@ -72,7 +72,6 @@ class InMemoryFlowStore(InMemoryStore):
             [create_meta_files_from_upload(current_file) for current_file in files]
 
         # TODO: Think how to add `flow_id` as `log_id` if yaml is coming as input
-        flow_id = uuid.uuid4()
 
         # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
         # I think this needs to be handled by some `FlowBuilder` class, transfrom a yaml_load to a config
@@ -87,7 +86,7 @@ class InMemoryFlowStore(InMemoryStore):
 
         if isinstance(config, list):
             try:
-                flow = Flow(log_id=flow_id)
+                flow = Flow()
                 # it is strange to build from a given flow, it seems like a lazy construction pattern could be used?
                 flow = self._build_with_pods(flow=flow,
                                              pod_args=config)
@@ -96,6 +95,8 @@ class InMemoryFlowStore(InMemoryStore):
                 raise FlowCreationException
 
         try:
+            flow_id = flow.args.identity
+            flow.args.log_id = flow_id
             flow = self._start(context=flow)
         except PeaFailToStart as e:
             self.logger.critical(f'Flow couldn\'t get started - Invalid Pod {repr(e)} ')
@@ -154,11 +155,11 @@ class InMemoryPodStore(InMemoryStore):
 
     def _create(self, pod_arguments: Dict):
         """ Creates a Pod via Flow or via CLI """
-        pod_id = uuid.uuid4()
 
         try:
-            if 'log_id' not in pod_arguments:
-                pod_arguments['log_id'] = pod_id
+            # force log_id so that it can be queried from RemotePod with the remote_id
+            pod_id = pod_arguments['identity'] if 'identity' in pod_arguments else uuid.uuid4()
+            pod_arguments['log_id'] = pod_id
             pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
@@ -192,11 +193,10 @@ class InMemoryPeaStore(InMemoryStore):
     # TODO: Merge this with InMemoryPodStore
     def _create(self,
                 pea_arguments: Dict):
-        pea_id = uuid.uuid4()
-
         try:
-            if 'log_id' not in pea_arguments:
-                pea_arguments['log_id'] = pea_id
+            pea_id = pea_arguments['identity'] if 'identity' in pea_arguments else uuid.uuid4()
+            # force log_id so that it can be queried from Flow with the remote_pea
+            pea_arguments['log_id'] = pea_id
             pea = Pea(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:
