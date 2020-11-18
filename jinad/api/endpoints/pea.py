@@ -6,10 +6,10 @@ from fastapi import status, APIRouter, File, UploadFile
 from fastapi.responses import StreamingResponse
 from jina.logging import JinaLogger
 
-from helper import basepea_to_namespace, create_meta_files_from_upload, dummy_generator
-from models.pea import PeaModel
-from store import pea_store
-from excepts import HTTPException, PeaStartException
+from ...helper import basepea_to_namespace, create_meta_files_from_upload, dummy_generator
+from ...models.pea import PeaModel
+from ...store import pea_store
+from ...excepts import HTTPException, PeaStartException
 
 logger = JinaLogger(context='👻 PEAAPI')
 router = APIRouter()

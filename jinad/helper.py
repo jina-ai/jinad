@@ -3,8 +3,8 @@ import os
 from typing import Dict
 
 from fastapi import UploadFile
-from models.pea import PeaModel
-from models.pod import PodModel
+from .models.pea import PeaModel
+from .models.pod import PodModel
 
 
 def get_enum_defaults(parser: argparse.ArgumentParser):

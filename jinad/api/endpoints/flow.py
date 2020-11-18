@@ -6,11 +6,10 @@ from fastapi import status, APIRouter, Body, Response, WebSocket, File, UploadFi
 from jina.clients import py_client
 from jina.logging import JinaLogger
 
-from models.pod import PodModel
-from store import flow_store
-from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
+from ...models.pod import PodModel
+from ...store import flow_store
+from ...excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException, GRPCServerError
-from config import openapitags_config
 
 logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()

@@ -6,11 +6,11 @@ from fastapi import status, APIRouter, File, UploadFile
 from fastapi.responses import StreamingResponse
 from jina.logging import JinaLogger
 
-from helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload, dummy_generator
-from models.pod import PodModel
-from store import pod_store
-from config import openapitags_config
-from excepts import HTTPException, PodStartException
+from ...helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload, dummy_generator
+from ...models.pod import PodModel
+from ...store import pod_store
+from ...config import openapitags_config
+from ...excepts import HTTPException, PodStartException
 
 logger = JinaLogger(context='👻 PODAPI')
 router = APIRouter()

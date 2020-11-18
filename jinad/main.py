@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
-from api.endpoints import common_router, flow, pod, pea
-from config import jinad_config, fastapi_config, hypercorn_config, openapitags_config
+from .api.endpoints import common_router, flow, pod, pea
+from .config import jinad_config, fastapi_config, hypercorn_config, openapitags_config
 
 
 def get_app():

@@ -9,9 +9,9 @@ from jina.helper import yaml, colored
 from jina.logging import JinaLogger
 from jina.peapods import Pea, Pod
 
-from helper import create_meta_files_from_upload, delete_meta_files_from_upload
-from models.pod import PodModel
-from excepts import PeaFailToStart, FlowYamlParseException, FlowCreationException, \
+from .helper import create_meta_files_from_upload, delete_meta_files_from_upload
+from .models.pod import PodModel
+from .excepts import PeaFailToStart, FlowYamlParseException, FlowCreationException, \
     FlowStartException, PodStartException, PeaStartException
 
 
