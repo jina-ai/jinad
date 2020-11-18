@@ -111,20 +111,6 @@ async def _create_via_flow(
     }
 
 
-@router.get(
-    path='/log',
-    summary='Stream log using log_iterator',
-)
-def _log(
-    pod_id: uuid.UUID
-):
-    """
-    Stream logs from remote pod using log_iterator (This will be changed!)
-    """
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f'Pod ID {pod_id} not found! Please create a new Flow')
-
-
 @router.delete(
     path='/pod',
     summary='Delete pod',

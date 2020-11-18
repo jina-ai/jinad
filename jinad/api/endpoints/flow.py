@@ -239,15 +239,6 @@ def _delete(
                                 detail=f'Flow ID {flow_id} not found! Please create a new Flow')
 
 
-@router.websocket(
-    path='/wslogs'
-)
-async def _websocket_logs(websocket: WebSocket):
-    # TODO: extend this to work with fluentd logs
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f'Error')
-
-
 @router.on_event('shutdown')
 def _shutdown():
     with flow_store._session():
