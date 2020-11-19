@@ -1,11 +1,11 @@
 import uuid
 import time
 import random
-import asyncio
 import pathlib
-from concurrent.futures import ThreadPoolExecutor
+from threading import Thread
 
 import pytest
+from fastapi import WebSocketDisconnect
 
 from jinad.excepts import HTTPException
 from jinad.config import log_config, fastapi_config
@@ -25,50 +25,103 @@ def feed_path_logs(filepath, total_lines, sleep):
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize('total_lines, num_lines_to_fetch, sleep', [
-    (10, 5, 0.1), (10, 5, random.random()),
-    (20, 20, 0.1), (20, 20, random.random()),
-    (100, 150, 0.1), (100, 150, random.random())
+@pytest.mark.parametrize('total_lines, sleep, timeout', [
+    (5, 1, 2), (10, random.random(), 5),
+    (20, 0.1, 2), (20, random.random(), 5),
+    (100, 0.1, 2), (100, random.random(), 5)
 ])
-async def test_logging_endpoint_success(fastapi_client, total_lines, num_lines_to_fetch, sleep):
-    _id = uuid.uuid1()
-    filepath = log_config.PATH % _id
+async def test_logging_endpoint_success(fastapi_client, total_lines, sleep, timeout):
+    log_id = uuid.uuid1()
+    filepath = log_config.PATH % log_id
 
-    loop = asyncio.get_running_loop()
-    with ThreadPoolExecutor() as executor:
-        await loop.run_in_executor(executor,
-                                   feed_path_logs,
-                                   filepath, total_lines, sleep, )
+    Thread(target=feed_path_logs,
+           args=(filepath, total_lines, sleep,),
+           daemon=True).start()
+    # sleeping for 2 secs to allow the thread to write logs
     time.sleep(2)
 
-    with fastapi_client.websocket_connect(f'{fastapi_config.PREFIX}/wslog/{_id}') as websocket:
+    with fastapi_client.websocket_connect(f'{fastapi_config.PREFIX}/wslog/{log_id}?timeout={timeout}') as websocket:
         _from = 0
-        empty_response_count = 0
+        logs_history = []
         total_number_of_logs = 0
-        while True:
-            if empty_response_count > 1:
-                # disconnect from websocket if there are more than 2 empty responses consecutively
-                assert total_number_of_logs == total_lines
-                break
-            websocket.send_json({'from': _from, 'to': _from + num_lines_to_fetch})
+        websocket.send_json({'from': _from})
+        while not len(logs_history) == total_lines:
             data = websocket.receive_json()
-            if not data:
-                empty_response_count += 1
-            else:
-                total_number_of_logs += len(data)
-                assert len(set(data.values())) == 1
-                _from = int(list(data.keys())[-1]) + 1
-                empty_response_count = 0
-            await asyncio.sleep(0.5)
+            assert len(data) == 1
+            logs_history.append(data)
+            websocket.send_json({})
+        # making sure we receive all lines of logs
+        assert [int(k) for d in logs_history for k in d] == list(range(1, total_lines + 1))
 
     pathlib.Path(filepath).unlink()
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize('total_lines, sleep, _from', [
+    (5, 1, 2), (10, random.random(), 5),
+    (20, 0.1, 2), (20, random.random(), 5),
+    (100, 0.1, 2), (100, random.random(), 5)
+])
+async def test_logging_endpoint_from(fastapi_client, total_lines, sleep, _from):
+    log_id = uuid.uuid1()
+    filepath = log_config.PATH % log_id
+
+    Thread(target=feed_path_logs,
+           args=(filepath, total_lines, sleep,),
+           daemon=True).start()
+    # sleeping for 2 secs to allow the thread to write logs
+    time.sleep(2)
+
+    with fastapi_client.websocket_connect(f'{fastapi_config.PREFIX}/wslog/{log_id}') as websocket:
+        logs_history = []
+        total_number_of_logs = 0
+        websocket.send_json({'from': _from})
+        while not len(logs_history) == total_lines - _from:
+            data = websocket.receive_json()
+            assert len(data) == 1
+            logs_history.append(data)
+            websocket.send_json({})
+
+        # making sure we receive all lines of logs
+        assert [int(k) for d in logs_history for k in d] == list(range(_from + 1, total_lines + 1))
+
+    pathlib.Path(filepath).unlink()
+
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('total_lines, sleep, exit_id', [
+    (5, 1, 2), (10, random.random(), 5)
+])
+async def test_logging_endpoint_exit_on_message(fastapi_client, total_lines, sleep, exit_id):
+    log_id = uuid.uuid1()
+    filepath = log_config.PATH % log_id
+
+    Thread(target=feed_path_logs,
+           args=(filepath, total_lines, sleep,),
+           daemon=True).start()
+    # sleeping for 2 secs to allow the thread to write logs
+    time.sleep(2)
+
+    with pytest.raises(WebSocketDisconnect) as response:
+        with fastapi_client.websocket_connect(f'{fastapi_config.PREFIX}/wslog/{log_id}') as websocket:
+            websocket.send_json({})
+            c = 0
+            message = {}
+            while True:
+                data = websocket.receive_json()
+                assert len(data) == 1
+                c += 1
+                if c == exit_id:
+                    message = {'exit': 1}
+                websocket.send_json(message)
+
+
+@pytest.mark.asyncio
 async def test_logging_endpoint_invalid_id(fastapi_client):
-    _id = uuid.uuid1()
+    log_id = uuid.uuid1()
     with pytest.raises(HTTPException) as response:
-        with fastapi_client.websocket_connect(f'{fastapi_config.PREFIX}/wslog/{_id}') as websocket:
+        with fastapi_client.websocket_connect(f'{fastapi_config.PREFIX}/wslog/{log_id}') as websocket:
             pass
     assert response.value.status_code == 404
     assert response.value.detail == 'No logs found'

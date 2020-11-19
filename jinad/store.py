@@ -95,7 +95,7 @@ class InMemoryFlowStore(InMemoryStore):
                 raise FlowCreationException
 
         try:
-            flow_id = flow.args.identity
+            flow_id = uuid.uuid1()
             flow.args.log_id = flow_id
             flow = self._start(context=flow)
         except PeaFailToStart as e:
