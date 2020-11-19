@@ -96,5 +96,5 @@ def delete_meta_files_from_upload(current_file: UploadFile):
 
 def dummy_generator():
     while True:
-        import time; time.sleep(1)
-        yield b"fake it, until we make it"
+        import time; time.sleep(5)
+        yield b"f"

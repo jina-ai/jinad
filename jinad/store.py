@@ -132,6 +132,7 @@ class InMemoryFlowStore(InMemoryStore):
 
     def _delete(self, flow_id: uuid.UUID):
         """ Closes a Flow context & deletes from store """
+        self.logger.info(f'Deleting flow with flow_id {colored(flow_id, "cyan")}')
         if flow_id not in self._store:
             raise KeyError(f'flow_id {flow_id} not found in store. please create one!')
         flow = self._store.pop(flow_id)
