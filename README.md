@@ -10,6 +10,7 @@
 ssh -i your.pem ubuntu@ec2-1-2-3-4.us-east-2.compute.amazonaws.com
 ```
 
+
 2. Install the required packages
 
 ```bash
@@ -26,10 +27,21 @@ pip3 install -e .
 ```
 
 4. Install jinad
+
 ```bash
 git clone https://github.com/jina-ai/jinad.git
 cd jinad/
 pip3 install -r jinad/requirements.txt
+```
+
+5. Install & Configure `Fluentd`
+
+```
+sudo mkdir -p /var/run/td-agent/
+sudo touch /var/run/td-agent/td-agent.pid
+curl -L https://toolbelt.treasuredata.com/sh/install-ubuntu-focal-td-agent4.sh | sh
+echo 'FLUENT_CONF=/home/ubuntu/jina/jina/resources/fluent.conf' | sudo tee -a /etc/default/td-agent
+sudo systemctl restart td-agent
 ```
 
 5. Create a systemd service
@@ -44,7 +56,7 @@ After=network.target
 User=ubuntu
 WorkingDirectory=/home/ubuntu/jinad/jinad
 Environment=JINAD_PORT=8000
-Environment=JINAD_CONTEXT=pod
+Environment=JINAD_CONTEXT=all
 ExecStart=/usr/bin/python3.8 main.py
 Restart=always
 
@@ -76,7 +88,7 @@ curl -s -o /dev/null -w "%{http_code}"  http://$JINAD_IP:$JINAD_PORT/v1/alive
 Alternatives, open `http://1.2.3.4:8000/docs` on your browser and you will see the API documentations of jinad.
 
 
-> env `JINAD_CONTEXT` is used to set up the jinad context. The possible values are `flow` (default), `pod`, and `pea`. When we use `JINAD_CONTEXT=pod`, it will set jinad to create Pods.
+> env `JINAD_CONTEXT` is used to set up the jinad context. The possible values are  `all` (default), `flow`, `pod`, and `pea`. When we use `JINAD_CONTEXT=pod`, it will set jinad to create Pods.
 
 > env `JINAD_PORT` is used to set a port on which Hypercorn runs (default: 8000)
 
