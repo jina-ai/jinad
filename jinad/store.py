@@ -6,7 +6,7 @@ from argparse import Namespace
 
 from fastapi import UploadFile
 from jina.flow import Flow
-from jina.helper import yaml, colored
+from jina.helper import yaml, colored, get_random_identity
 from jina.logging import JinaLogger
 from jina.peapods import Pea, Pod
 
@@ -72,8 +72,6 @@ class InMemoryFlowStore(InMemoryStore):
         if files:
             [create_meta_files_from_upload(current_file) for current_file in files]
 
-        # TODO: Think how to add `flow_id` as `log_id` if yaml is coming as input
-
         # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
         # I think this needs to be handled by some `FlowBuilder` class, transfrom a yaml_load to a config
         if isinstance(config, str) or isinstance(config, SpooledTemporaryFile):
@@ -96,7 +94,7 @@ class InMemoryFlowStore(InMemoryStore):
                 raise FlowCreationException
 
         try:
-            flow_id = uuid.uuid1()
+            flow_id = flow.args.identity if 'identity' in flow.args else get_random_identity()
             flow.args.log_id = flow_id
             flow = self._start(context=flow)
         except PeaFailToStart as e:
@@ -154,16 +152,12 @@ class InMemoryFlowStore(InMemoryStore):
 
 class InMemoryPodStore(InMemoryStore):
 
-    def _create(self, pod_arguments: Union[Dict, 'argparse.Namespace']):
+    def _create(self, pod_arguments: Union[Dict, Namespace]):
         """ Creates a Pod via Flow or via CLI """
 
         try:
-            if isinstance(pod_arguments, Namespace):
-                pod_id = pod_arguments.identity if 'identity' in pod_arguments else uuid.uuid4()
-                pod_arguments.log_id = pod_id
-            elif isinstance(pod_arguments, dict):
-                pea_id = pod_arguments['identity'] if 'identity' in pod_arguments else uuid.uuid4()
-                pod_arguments['log_id'] = pea_id
+            pod_id = uuid.UUID(pod_arguments.log_id) if isinstance(pod_arguments, Namespace) \
+                else uuid.UUID(pod_arguments['peas'][0].log_id)
             pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
@@ -195,15 +189,10 @@ class InMemoryPeaStore(InMemoryStore):
     """ Creates Pea on remote  """
 
     # TODO: Merge this with InMemoryPodStore
-    def _create(self, pea_arguments: Union[Dict, 'argparse.Namespace']):
+    def _create(self, pea_arguments: Union[Dict, Namespace]):
         try:
-            # TODO: this is better to be handled in the helper function
-            if isinstance(pea_arguments, Namespace):
-                pea_id = pea_arguments.identity if 'identity' in pea_arguments else uuid.uuid4()
-                pea_arguments.log_id = pea_id
-            elif isinstance(pea_arguments, dict):
-                pea_id = pea_arguments['identity'] if 'identity' in pea_arguments else uuid.uuid4()
-                pea_arguments['log_id'] = pea_id
+            pea_id = uuid.UUID(pea_arguments.log_id) if isinstance(pea_arguments, Namespace) \
+                else uuid.UUID(pea_arguments['log_id'])
             pea = Pea(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:

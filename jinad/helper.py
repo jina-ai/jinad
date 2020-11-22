@@ -2,6 +2,7 @@ import argparse
 import os
 from typing import Dict
 
+from jina.helper import get_random_identity
 from fastapi import UploadFile
 from models.pea import PeaModel
 from models.pod import PodModel
@@ -36,9 +37,8 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser) -> Dict:
     return _args
 
 
-def handle_log_id():
-    # TODO: implement
-    pass
+def handle_log_id(args: Dict):
+    args['log_id'] = args['identity'] if 'identity' in args else get_random_identity()
 
 
 def flowpod_to_namespace(args: Dict):
@@ -56,6 +56,7 @@ def flowpod_to_namespace(args: Dict):
         if isinstance(pea_args, dict):
             pea_args = handle_enums(args=pea_args,
                                     parser=parser)
+            handle_log_id(args=pea_args)
             pod_args[pea_type] = argparse.Namespace(**pea_args)
 
         # this is for pea_type: peas (multiple entries)
@@ -64,6 +65,7 @@ def flowpod_to_namespace(args: Dict):
             for pea_arg in pea_args:
                 pea_arg = handle_enums(args=pea_arg,
                                        parser=parser)
+                handle_log_id(args=pea_arg)
                 pod_args[pea_type].append(argparse.Namespace(**pea_arg))
 
     return pod_args
@@ -76,6 +78,7 @@ def basepod_to_namespace(args: PodModel):
     if isinstance(args, PodModel):
         pod_args = handle_enums(args=args.dict(),
                                 parser=parser)
+        handle_log_id(args=pod_args)
         return argparse.Namespace(**pod_args)
 
 
@@ -86,6 +89,7 @@ def basepea_to_namespace(args: PeaModel):
     if isinstance(args, PeaModel):
         pea_args = handle_enums(args=args.dict(),
                                 parser=parser)
+        handle_log_id(args=pea_args)
         return argparse.Namespace(**pea_args)
 
 
