@@ -18,7 +18,7 @@ def get_enum_defaults(parser: argparse.ArgumentParser):
     return enum_args
 
 
-def handle_enums(args: Dict, parser: argparse.ArgumentParser):
+def handle_enums(args: Dict, parser: argparse.ArgumentParser) -> Dict:
     """ Since REST relies on json, reverse conversion of integers to enums is needed """
     default_enums = get_enum_defaults(parser=parser)
     _args = args.copy()
@@ -34,6 +34,11 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser):
             elif isinstance(value, str):
                 _args[key] = _enum_type.from_string(value)
     return _args
+
+
+def handle_log_id():
+    # TODO: implement
+    pass
 
 
 def flowpod_to_namespace(args: Dict):

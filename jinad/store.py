@@ -2,6 +2,7 @@ import uuid
 from contextlib import contextmanager
 from tempfile import SpooledTemporaryFile
 from typing import List, Dict, Union
+from argparse import Namespace
 
 from fastapi import UploadFile
 from jina.flow import Flow
@@ -153,13 +154,16 @@ class InMemoryFlowStore(InMemoryStore):
 
 class InMemoryPodStore(InMemoryStore):
 
-    def _create(self, pod_arguments: Dict):
+    def _create(self, pod_arguments: Union[Dict, 'argparse.Namespace']):
         """ Creates a Pod via Flow or via CLI """
 
         try:
-            # force log_id so that it can be queried from RemotePod with the remote_id
-            pod_id = pod_arguments['identity'] if 'identity' in pod_arguments else uuid.uuid4()
-            pod_arguments['log_id'] = pod_id
+            if isinstance(pod_arguments, Namespace):
+                pod_id = pod_arguments.identity if 'identity' in pod_arguments else uuid.uuid4()
+                pod_arguments.log_id = pod_id
+            elif isinstance(pod_arguments, dict):
+                pea_id = pod_arguments['identity'] if 'identity' in pod_arguments else uuid.uuid4()
+                pod_arguments['log_id'] = pea_id
             pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
@@ -191,12 +195,15 @@ class InMemoryPeaStore(InMemoryStore):
     """ Creates Pea on remote  """
 
     # TODO: Merge this with InMemoryPodStore
-    def _create(self,
-                pea_arguments: Dict):
+    def _create(self, pea_arguments: Union[Dict, 'argparse.Namespace']):
         try:
-            pea_id = pea_arguments['identity'] if 'identity' in pea_arguments else uuid.uuid4()
-            # force log_id so that it can be queried from Flow with the remote_pea
-            pea_arguments['log_id'] = pea_id
+            # TODO: this is better to be handled in the helper function
+            if isinstance(pea_arguments, Namespace):
+                pea_id = pea_arguments.identity if 'identity' in pea_arguments else uuid.uuid4()
+                pea_arguments.log_id = pea_id
+            elif isinstance(pea_arguments, dict):
+                pea_id = pea_arguments['identity'] if 'identity' in pea_arguments else uuid.uuid4()
+                pea_arguments['log_id'] = pea_id
             pea = Pea(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:

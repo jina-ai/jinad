@@ -24,7 +24,9 @@ async def tail(file_handler, line_num_from=0, timeout=5):
             line_number += 1
             if line_number < line_num_from:
                 continue
-            yield line_number, line.strip()
+            # TODO: this can be done better
+            line = json.loads('{' + line.split('{')[1])
+            yield line_number, line
             last_log_time = time.time()
             await asyncio.sleep(0.01)
     else:
@@ -68,7 +70,7 @@ async def _websocket_logs(
         with open(file_path) as fp:
             async for line_number, line in tail(file_handler=fp, timeout=timeout):
                 if line_number > line_num_from:
-                    logs_to_be_sent[line_number] = line.strip()
+                    logs_to_be_sent[line_number] = line
                     logger.info(f'Sending logs {logs_to_be_sent}')
                     await websocket.send_text(json.dumps(logs_to_be_sent))
                     data = await websocket.receive_json()
