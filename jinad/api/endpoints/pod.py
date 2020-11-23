@@ -4,7 +4,7 @@ from typing import Dict, List
 from fastapi import status, APIRouter, File, UploadFile
 from jina.logging import JinaLogger
 
-from helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload
+from helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload, dummy_generator
 from models.pod import PodModel
 from store import pod_store
 from config import openapitags_config
@@ -121,8 +121,13 @@ def _log(
     """
     Stream logs from remote pod using log_iterator (This will be changed!)
     """
-    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f'Pod ID {pod_id} not found! Please create a new Flow')
+    with pod_store._session():
+        try:
+            current_pod = pod_store._store[pod_id]['pod']
+            return StreamingResponse(streamer(dummy_generator()))
+        except KeyError:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                                detail=f'Pod ID {pod_id} not found! Please create a new Flow')
 
 
 @router.delete(

@@ -24,7 +24,7 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser):
     _args = args.copy()
 
     if 'log_config' in _args:
-        _args.pop('log_config')
+        _args['log_config'] = parser.get_default('--log-config')
 
     for key, value in args.items():
         if key in default_enums:
@@ -92,3 +92,9 @@ def create_meta_files_from_upload(current_file: UploadFile):
 def delete_meta_files_from_upload(current_file: UploadFile):
     if os.path.isfile(current_file.filename):
         os.remove(current_file.filename)
+
+
+def dummy_generator():
+    while True:
+        import time; time.sleep(1)
+        yield b"fake it, until we make it"
