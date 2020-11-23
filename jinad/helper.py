@@ -85,6 +85,7 @@ def basepea_to_namespace(args: PeaModel):
 
 
 def create_meta_files_from_upload(current_file: UploadFile):
+    print(f'create_meta_files_from_upload {current_file.filename} ')
     with open(current_file.filename, 'wb') as f:
         f.write(current_file.file.read())
 

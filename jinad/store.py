@@ -68,6 +68,8 @@ class InMemoryFlowStore(InMemoryStore):
         """ Creates Flow using List[PodModel] or yaml spec """
         # This makes sure `uses` & `py_modules` are created locally in `cwd`
         # TODO: Handle file creation, deletion better
+        self.logger.info(f' HEEEY CREATE WITH config:{config} and files:{files}')
+
         if files:
             [create_meta_files_from_upload(current_file) for current_file in files]
 

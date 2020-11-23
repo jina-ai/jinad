@@ -10,7 +10,6 @@ from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException, GRPCServerError
-from config import openapitags_config
 
 logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()
@@ -139,6 +138,7 @@ def _create_from_yaml(
 
     with flow_store._session():
         try:
+            print(f' HEEEY CREATE WITH yaml:{yamlspec.file} and uses:{uses_files} and modules:{pymodules_files}')
             flow_id, host, port_expose = flow_store._create(config=yamlspec.file,
                                                             files=list(uses_files) + list(pymodules_files))
         except FlowYamlParseException:
