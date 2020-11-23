@@ -3,6 +3,7 @@ import time
 import random
 import pathlib
 from threading import Thread
+from datetime import datetime, timezone
 
 import pytest
 from fastapi import WebSocketDisconnect
@@ -19,7 +20,10 @@ def feed_path_logs(filepath, total_lines, sleep):
     pathlib.Path(filepath).parent.absolute().mkdir(parents=True, exist_ok=True)
     with open(filepath, 'a') as fp:
         for _ in range(total_lines):
-            fp.writelines(LOG_MESSAGE + '\n')
+            message = f'{datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S%z")}\t' \
+                      f'jina\t' \
+                      f'{{"host": "blah", "process": "blah", "message": "{LOG_MESSAGE}" }}'
+            fp.writelines(message + '\n')
             fp.flush()
             time.sleep(sleep)
 
