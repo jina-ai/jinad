@@ -1,9 +1,7 @@
-import time
 import uuid
 from typing import List
 
 from fastapi import status, APIRouter, File, UploadFile
-from fastapi.responses import StreamingResponse
 from jina.logging import JinaLogger
 
 from helper import basepea_to_namespace, create_meta_files_from_upload, dummy_generator
@@ -68,35 +66,6 @@ async def _create(
         'pea_id': pea_id,
         'status': 'started'
     }
-
-
-def streamer(generator):
-    try:
-        for i in generator:
-            yield i
-            time.sleep(.001)
-
-    except GeneratorExit:
-        logger.info("Exiting from Pod log_iterator")
-
-
-@router.get(
-    path='/log',
-    summary='Stream log using log_iterator',
-)
-def _log(
-    pea_id: uuid.UUID
-):
-    """
-    Stream logs from remote pea using log_iterator (This will be changed!)
-    """
-    with pea_store._session():
-        try:
-            current_pea = pea_store._store[pea_id]['pea']
-            return StreamingResponse(streamer(dummy_generator()))
-        except KeyError:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                                detail=f'Pea ID {pea_id} not found! Please create a new Pea')
 
 
 @router.delete(

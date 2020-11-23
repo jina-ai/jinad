@@ -68,7 +68,13 @@ class JinaDConfig(BaseConfig):
         return value.lower()
 
 
+class LogConfig(BaseConfig):
+    # TODO: Read config from some file
+    PATH: str = '/tmp/jina-log/%s/log.log'
+
+
 jinad_config = JinaDConfig()
+log_config = LogConfig()
 fastapi_config = FastAPIConfig()
 hypercorn_config = HypercornConfig()
 openapitags_config = OpenAPITags()

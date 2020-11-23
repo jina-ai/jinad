@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
 
-from api.endpoints import common_router, flow, pod, pea
+from api.endpoints import common_router, flow, pod, pea, logs
 from config import jinad_config, fastapi_config, hypercorn_config, openapitags_config
 
 
@@ -29,6 +29,8 @@ def get_app():
         version=fastapi_config.VERSION
     )
     app.include_router(router=common_router,
+                       prefix=fastapi_config.PREFIX)
+    app.include_router(router=logs.router,
                        prefix=fastapi_config.PREFIX)
     if jinad_config.CONTEXT == 'all':
         for _current_router in _all_routers.values():

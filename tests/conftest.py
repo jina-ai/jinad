@@ -14,6 +14,7 @@ def fastapi_client():
     from jinad.main import get_app
     app = get_app()
     client = TestClient(app)
+    return client
 
 
 @pytest.fixture(scope='session')
@@ -23,7 +24,8 @@ def common_endpoints():
         ('swagger_ui_html', '/docs'),
         ('swagger_ui_redirect', '/docs/oauth2-redirect'),
         ('redoc_html', '/redoc'),
-        ('_status', f'{PREFIX}/alive')
+        ('_status', f'{PREFIX}/alive'),
+        ('_websocket_logs', f'{PREFIX}/wslog/{{log_id}}')
     ]
 
 
@@ -35,7 +37,6 @@ def flow_endpoints():
         ('_fetch', f'{PREFIX}/flow/{{flow_id}}'),
         ('_ping', f'{PREFIX}/ping'),
         ('_delete', f'{PREFIX}/flow'),
-        ('_websocket_logs', f'{PREFIX}/wslogs')
     ]
 
 
@@ -45,7 +46,6 @@ def pod_endpoints():
         ('_upload', f'{PREFIX}/upload'),
         ('_create_independent', f'{PREFIX}/pod/cli'),
         ('_create_via_flow', f'{PREFIX}/pod/flow'),
-        ('_log', f'{PREFIX}/log'),
         ('_delete', f'{PREFIX}/pod')
     ]
 
@@ -55,6 +55,5 @@ def pea_endpoints():
     return [
         ('_upload', f'{PREFIX}/pea/upload'),
         ('_create', f'{PREFIX}/pea'),
-        ('_log', f'{PREFIX}/log'),
         ('_delete', f'{PREFIX}/pea')
     ]

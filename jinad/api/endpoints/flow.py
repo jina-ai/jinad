@@ -10,7 +10,6 @@ from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException, GRPCServerError
-from config import openapitags_config
 
 logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()
@@ -238,17 +237,6 @@ def _delete(
         except KeyError:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                                 detail=f'Flow ID {flow_id} not found! Please create a new Flow')
-
-
-@router.websocket(
-    path='/wslogs'
-)
-async def _websocket_logs(websocket: WebSocket):
-    # TODO: extend this to work with fluentd logs
-    await websocket.accept()
-    while True:
-        data = await websocket.receive_text()
-        await websocket.send_text(f'Message text: {data}')
 
 
 @router.on_event('shutdown')
