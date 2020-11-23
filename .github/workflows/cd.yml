@@ -26,5 +26,5 @@ jobs:
           name: jinaai/jinad
           username: ${{ secrets.DOCKERHUB_DEVBOT_USER }}
           password: ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
-          dockerfile: Dockerfile
+          dockerfile: Dockerfiles/Dockerfile
           buildargs: BUILD_DATE, VCS_REF
