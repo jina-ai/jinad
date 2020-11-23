@@ -24,10 +24,13 @@ async def tail(file_handler, line_num_from=0, timeout=5):
             line_number += 1
             if line_number < line_num_from:
                 continue
-            # TODO: this can be done better
-            line = json.loads('{' + line.split('{')[1])
-            yield line_number, line
-            last_log_time = time.time()
+            try:
+                # TODO: this can be done better
+                line = json.loads('{' + line.split('{')[1])
+                yield line_number, line
+                last_log_time = time.time()
+            except (json.decoder.JSONDecodeError, IndexError):
+                continue
             await asyncio.sleep(0.01)
     else:
         raise TimeoutException()
