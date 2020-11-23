@@ -19,3 +19,11 @@ class PodStartException(Exception):
 
 class PeaStartException(Exception):
     """ Exception during pod start """
+
+
+class TimeoutException(Exception):
+    """ Exception to raise for successive log line timeout """
+
+
+class ClientExit(Exception):
+    """ Exception for websocket client closure """
