@@ -30,6 +30,7 @@ async def tail(file_handler, line_num_from=0, timeout=5):
                 yield line_number, line
                 last_log_time = time.time()
             except (json.decoder.JSONDecodeError, IndexError):
+                logger.info(f'following line resulted in error: {line}')
                 continue
             await asyncio.sleep(0.01)
     else:
