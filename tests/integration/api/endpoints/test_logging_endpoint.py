@@ -30,9 +30,9 @@ def feed_path_logs(filepath, total_lines, sleep):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize('total_lines, sleep, timeout', [
-    (5, 1, 2), (10, random.random(), 5),
-    (20, 0.1, 2), (20, random.random(), 5),
-    (100, 0.1, 2), (100, random.random(), 5)
+    (5, 1, 2), (10, random.uniform(0.5, 1), 5),
+    (20, 1, 2), (20, random.uniform(0.5, 1), 5),
+    (100, 1, 2), (100, random.uniform(0.5, 1), 5)
 ])
 async def test_logging_endpoint_success(fastapi_client, total_lines, sleep, timeout):
     log_id = uuid.uuid1()
