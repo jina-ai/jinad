@@ -70,9 +70,9 @@ async def test_logging_endpoint_from(fastapi_client, total_lines, sleep, _from):
     log_id = uuid.uuid1()
     filepath = log_config.PATH % log_id
 
-    Thread(target=feed_path_logs,
-           args=(filepath, total_lines, sleep,),
-           daemon=True).start()
+    Process(target=feed_path_logs,
+            args=(filepath, total_lines, sleep,),
+            daemon=True).start()
     # sleeping for 2 secs to allow the thread to write logs
     time.sleep(2)
 
@@ -101,9 +101,9 @@ async def test_logging_endpoint_exit_on_message(fastapi_client, total_lines, sle
     log_id = uuid.uuid1()
     filepath = log_config.PATH % log_id
 
-    Thread(target=feed_path_logs,
-           args=(filepath, total_lines, sleep,),
-           daemon=True).start()
+    Process(target=feed_path_logs,
+            args=(filepath, total_lines, sleep,),
+            daemon=True).start()
     # sleeping for 2 secs to allow the thread to write logs
     time.sleep(2)
 
