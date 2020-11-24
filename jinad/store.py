@@ -94,8 +94,8 @@ class InMemoryFlowStore(InMemoryStore):
                 raise FlowCreationException
 
         try:
-            flow_id = flow.args.identity if 'identity' in flow.args else get_random_identity()
-            flow.args.log_id = flow_id
+            flow.args.log_id = flow.args.identity if 'identity' in flow.args else get_random_identity()
+            flow_id = uuid.UUID(flow.args.log_id)
             flow = self._start(context=flow)
         except PeaFailToStart as e:
             self.logger.critical(f'Flow couldn\'t get started - Invalid Pod {repr(e)} ')
