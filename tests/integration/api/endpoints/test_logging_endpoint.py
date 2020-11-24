@@ -18,13 +18,12 @@ def feed_path_logs(filepath, total_lines, sleep):
     # method to write logs to a file in random interval
     # this runs in a separate thread
     pathlib.Path(filepath).parent.absolute().mkdir(parents=True, exist_ok=True)
-    with open(filepath, 'a') as fp:
+    with open(filepath, 'a', buffering=1) as fp:
         for _ in range(total_lines):
             message = f'{datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S%z")}\t' \
                       f'jina\t' \
                       f'{{"host": "blah", "process": "blah", "message": "{LOG_MESSAGE}" }}'
             fp.writelines(message + '\n')
-            fp.flush()
             time.sleep(sleep)
 
 
@@ -70,9 +69,9 @@ async def test_logging_endpoint_from(fastapi_client, total_lines, sleep, _from):
     log_id = uuid.uuid1()
     filepath = log_config.PATH % log_id
 
-    Thread(target=feed_path_logs,
-           args=(filepath, total_lines, sleep,),
-           daemon=True).start()
+    Process(target=feed_path_logs,
+            args=(filepath, total_lines, sleep,),
+            daemon=True).start()
     # sleeping for 2 secs to allow the thread to write logs
     time.sleep(2)
 
@@ -101,9 +100,9 @@ async def test_logging_endpoint_exit_on_message(fastapi_client, total_lines, sle
     log_id = uuid.uuid1()
     filepath = log_config.PATH % log_id
 
-    Thread(target=feed_path_logs,
-           args=(filepath, total_lines, sleep,),
-           daemon=True).start()
+    Process(target=feed_path_logs,
+            args=(filepath, total_lines, sleep,),
+            daemon=True).start()
     # sleeping for 2 secs to allow the thread to write logs
     time.sleep(2)
 
