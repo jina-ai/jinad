@@ -2,7 +2,7 @@ import uuid
 import time
 import random
 import pathlib
-from threading import Thread
+from multiprocessing import Process
 from datetime import datetime, timezone
 
 import pytest
@@ -38,10 +38,10 @@ async def test_logging_endpoint_success(fastapi_client, total_lines, sleep, time
     log_id = uuid.uuid1()
     filepath = log_config.PATH % log_id
 
-    Thread(target=feed_path_logs,
-           args=(filepath, total_lines, sleep,),
-           daemon=True).start()
-    # sleeping for 2 secs to allow the thread to write logs
+    Process(target=feed_path_logs,
+            args=(filepath, total_lines, sleep,),
+            daemon=True).start()
+    # sleeping for 2 secs to allow the process to write logs
     time.sleep(2)
 
     with fastapi_client.websocket_connect(f'{fastapi_config.PREFIX}/wslog/{log_id}?timeout={timeout}') as websocket:
