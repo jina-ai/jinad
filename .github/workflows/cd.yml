@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - run: |
+          echo "JINAD_VERSION=$(sed -n '/^__version__/p' ./jinad/__init__.py | cut -d \' -f2)-devel" >> $GITHUB_ENV
       - name: Setup docker buildx
         id: buildx
         uses: crazy-max/ghaction-docker-buildx@v1
@@ -28,3 +33,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           dockerfile: Dockerfiles/Dockerfile
           buildargs: BUILD_DATE, VCS_REF
+          tags: "devel, ${{env.JINAD_VERSION}}"
