@@ -219,7 +219,7 @@ async def _ping(
     path='/flow',
     summary='Close Flow context',
 )
-def _delete(
+async def _delete(
     flow_id: uuid.UUID
 ):
     """
