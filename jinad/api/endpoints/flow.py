@@ -2,7 +2,7 @@ import json
 import uuid
 from typing import List, Union
 
-from fastapi import status, APIRouter, Body, Response, WebSocket, File, UploadFile
+from fastapi import status, APIRouter, Body, Response, File, UploadFile
 from jina.clients import py_client
 from jina.logging import JinaLogger
 
@@ -19,9 +19,9 @@ router = APIRouter()
     path='/flow/pods',
     summary='Build & start a Flow using Pods',
 )
-def _create_from_pods(
-        pods: Union[List[PodModel]] = Body(...,
-                                           example=json.loads(PodModel().json()))
+async def _create_from_pods(
+    pods: Union[List[PodModel]] = Body(...,
+                                       example=json.loads(PodModel().json()))
 ):
     """
     Build a Flow using a list of `PodModel`
@@ -61,10 +61,10 @@ def _create_from_pods(
     path='/flow/yaml',
     summary='Build & start a Flow using YAML',
 )
-def _create_from_yaml(
-        yamlspec: UploadFile = File(...),
-        uses_files: List[UploadFile] = File(()),
-        pymodules_files: List[UploadFile] = File(())
+async def _create_from_yaml(
+    yamlspec: UploadFile = File(...),
+    uses_files: List[UploadFile] = File(()),
+    pymodules_files: List[UploadFile] = File(())
 ):
     """
     Build a flow using [Flow YAML](https://docs.jina.ai/chapters/yaml/yaml.html#flow-yaml-sytanx)
@@ -161,8 +161,8 @@ def _create_from_yaml(
     summary='Get Flow information',
 )
 async def _fetch(
-        flow_id: uuid.UUID,
-        yaml_only: bool = False
+    flow_id: uuid.UUID,
+    yaml_only: bool = False
 ):
     """
     Get Flow information using `flow_id`.
@@ -195,24 +195,21 @@ async def _fetch(
     path='/ping',
     summary='Connect to Flow gateway',
 )
-def _ping(
-        host: str,
-        port: int
+async def _ping(
+    host: str,
+    port: int
 ):
     """
     Ping to check if we can connect to gateway via gRPC `host:port`
 
     Note: Make sure Flow is running
-    # TODO: check if gateway is REST & connect via REST
-    # TODO: why is this not async def?
     """
     try:
-        py_client(port_expose=port,
-                  host=host)
-        return {
-            'status_code': status.HTTP_200_OK,
-            'detail': 'connected'
-        }
+        async with py_client(port_expose=port, host=host) as client:
+            return {
+                'status_code': status.HTTP_200_OK,
+                'detail': 'connected'
+            }
     except GRPCServerError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'Cannot connect to GRPC Server on {host}:{port}')
@@ -223,7 +220,7 @@ def _ping(
     summary='Close Flow context',
 )
 def _delete(
-        flow_id: uuid.UUID
+    flow_id: uuid.UUID
 ):
     """
     Close Flow context
