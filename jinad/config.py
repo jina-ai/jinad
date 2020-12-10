@@ -52,8 +52,8 @@ class OpenAPITags(BaseConfig):
     }]
 
 
-class HypercornConfig(BaseConfig):
-    # TODO: check if HOST can be a ipaddress.IPv4Address in hypercorn
+class ServerConfig(BaseConfig):
+    # TODO: check if HOST can be a ipaddress.IPv4Address
     HOST: str = '0.0.0.0'
     PORT: int = 8000
 
@@ -76,5 +76,5 @@ class LogConfig(BaseConfig):
 jinad_config = JinaDConfig()
 log_config = LogConfig()
 fastapi_config = FastAPIConfig()
-hypercorn_config = HypercornConfig()
+server_config = ServerConfig()
 openapitags_config = OpenAPITags()
