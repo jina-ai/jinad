@@ -1,13 +1,9 @@
-import uvloop
-import asyncio
 from collections import namedtuple
 
 from fastapi import FastAPI
-from hypercorn.config import Config
-from hypercorn.asyncio import serve
 
 from api.endpoints import common_router, flow, pod, pea, logs
-from config import jinad_config, fastapi_config, hypercorn_config, openapitags_config
+from config import jinad_config, fastapi_config, server_config, openapitags_config
 
 
 def get_app():
@@ -46,11 +42,15 @@ def get_app():
     return app
 
 
-def hc_serve(app: 'FastAPI'):
+def hypercorn_serve(app: 'FastAPI'):
     """Sets uvloop as current eventloop, triggers `hypercorn.serve` using asyncio
     """
+    import uvloop
+    import asyncio
+    from hypercorn.config import Config
+    from hypercorn.asyncio import serve
     config = Config()
-    config.bind = [f'{hypercorn_config.HOST}:{hypercorn_config.PORT}']
+    config.bind = [f'{server_config.HOST}:{server_config.PORT}']
     config.loglevel = 'ERROR'
 
     asyncio.set_event_loop_policy(
@@ -63,6 +63,17 @@ def hc_serve(app: 'FastAPI'):
     )
 
 
+def uvicorn_serve(app: 'FastAPI'):
+    from uvicorn import Config, Server
+    config = Config(app=app,
+                    host=server_config.HOST,
+                    port=server_config.PORT,
+                    loop='uvloop',
+                    log_level='error')
+    server = Server(config=config)
+    server.run()
+
+
 if __name__ == "__main__":
     app = get_app()
-    hc_serve(app=app)
+    uvicorn_serve(app=app)
