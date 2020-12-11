@@ -155,7 +155,7 @@ Alternatives, open `http://1.2.3.4:8000/docs` on your browser and you will see t
 
 > env `JINAD_CONTEXT` is used to set up the jinad context. The possible values are  `all` (default), `flow`, `pod`, and `pea`. When we use `JINAD_CONTEXT=pod`, it will set jinad to create Pods.
 
-> env `JINAD_PORT` is used to set a port on which Hypercorn runs (default: 8000)
+> env `JINAD_PORT` is used to set a port on which Uvicorn/Hypercorn runs (default: 8000)
 
 -->
 

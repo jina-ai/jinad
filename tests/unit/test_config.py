@@ -1,6 +1,6 @@
 import pytest
 
-from jinad.config import FastAPIConfig, OpenAPITags, HypercornConfig, JinaDConfig
+from jinad.config import FastAPIConfig, OpenAPITags, ServerConfig, JinaDConfig
 
 
 def test_valid_fastapi_config():
@@ -49,23 +49,23 @@ def test_invalid_openapi_config():
         OpenAPITags(LOG_API_TAGS=0)
 
 
-def test_valid_hypercorn_config():
+def test_valid_server_config():
     # TODO: this should be a ipaddress.IPv4Address instead of str
-    _hc_host = HypercornConfig(HOST='132.90.1.5')
+    _hc_host = ServerConfig(HOST='132.90.1.5')
     assert _hc_host.HOST == '132.90.1.5'
     assert _hc_host.PORT == 8000
 
-    _hc_port = HypercornConfig(PORT=1200)
+    _hc_port = ServerConfig(PORT=1200)
     assert _hc_port.HOST == '0.0.0.0'
     assert _hc_port.PORT == 1200
 
 
-def test_invalid_hypercorn_config():
+def test_invalid_server_config():
     with pytest.raises(ValueError):
-        HypercornConfig(HOST=[])
+        ServerConfig(HOST=[])
 
     with pytest.raises(ValueError):
-        HypercornConfig(PORT='abc')
+        ServerConfig(PORT='abc')
 
 
 def test_valid_jinad_config():

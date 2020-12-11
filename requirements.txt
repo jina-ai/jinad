@@ -1,5 +1,6 @@
 jina[http]>=0.7.12
 fastapi
+uvicorn
 hypercorn
 pydantic
 python-multipart
