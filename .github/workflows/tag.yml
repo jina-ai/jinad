@@ -8,30 +8,33 @@ on:
 
 jobs:
   update-docker:
-  runs-on: ubuntu-latest
-  steps:
-    - uses: actions/checkout@v2
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: crazy-max/ghaction-docker-buildx@v1
-      with:
-        buildx-version: latest
-    - name: Set envs and versions
-      run: |
-        echo ${{ steps.buildx.outputs.platforms }}
-        echo "VCS_REF=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
-        echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
-    - name: Set jinad versions
-      id: get_version
-      run: |
-        echo "JINAD_VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
-    - name: Run Buildx and Upload to Docker Cloud
-      run: |
-        docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
-        docker buildx build \
-          --platform linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm/v7,linux/arm/v6 \
-          --output "type=registry" \
-          --build-arg VCS_REF --build-arg BUILD_DATE --build-arg JINAD_VERSION \
-          -t "jinaai/jinad:$JINAD_VERSION" -t jinaai/jinad:latest \
-          --file ./Dockerfiles/Dockerfile .
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          buildx-version: latest
+      - name: Set envs and versions
+        run: |
+          echo ${{ steps.buildx.outputs.platforms }}
+          echo "VCS_REF=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+          echo "BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_ENV
+      - name: Set jinad versions
+        id: get_version
+        run: |
+          echo "JINAD_VERSION=${GITHUB_REF/refs\/tags\/v/}" >> $GITHUB_ENV
+      - name: Run Buildx and Upload to Docker Cloud
+        run: |
+          docker login -u ${{ secrets.DOCKERHUB_DEVBOT_USER }} -p ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
+          docker buildx build \
+            --platform linux/amd64,linux/arm64,linux/ppc64le,linux/s390x,linux/386,linux/arm/v7,linux/arm/v6 \
+            --output "type=registry" \
+            --build-arg VCS_REF --build-arg BUILD_DATE --build-arg JINAD_VERSION \
+            -t "jinaai/jinad:$JINAD_VERSION" -t jinaai/jinad:latest \
+            --file ./Dockerfiles/Dockerfile .
 

@@ -9,7 +9,7 @@ class BaseConfig(BaseSettings):
 class FastAPIConfig(BaseConfig):
     NAME: str = 'Jina Remote Manager'
     DESCRIPTION: str = 'REST API for managing Jina on Remote'
-    VERSION: str = '0.1.0'
+    VERSION: str = '0.0.2'
     PREFIX: str = '/v1'
 
 

@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: 3.7
       - run: |
-          echo "JINAD_VERSION=$(sed -n '/^__version__/p' ./jinad/__init__.py | cut -d \' -f2)-devel" >> $GITHUB_ENV
+          echo "JINAD_VERSION=$(python -c "from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.VERSION)")-devel" >> $GITHUB_ENV
       - name: Setup docker buildx
         id: buildx
         uses: crazy-max/ghaction-docker-buildx@v1
