@@ -15,6 +15,7 @@ jobs:
           python-version: 3.7
       - run: |
           echo "JINAD_VERSION=$(python -c "from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.VERSION)")-devel" >> $GITHUB_ENV
+          echo "JINAD_PREFIX=$(python -c "from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.PREFIX.strip('/'))")-devel" >> $GITHUB_ENV
       - name: Setup docker buildx
         id: buildx
         uses: crazy-max/ghaction-docker-buildx@v1
@@ -33,4 +34,4 @@ jobs:
           password: ${{ secrets.DOCKERHUB_DEVBOT_TOKEN }}
           dockerfile: Dockerfiles/Dockerfile
           buildargs: BUILD_DATE, VCS_REF
-          tags: "devel, ${{env.JINAD_VERSION}}"
+          tags: "devel, ${{env.JINAD_VERSION}}, ${{env.JINAD_PREFIX}}"
