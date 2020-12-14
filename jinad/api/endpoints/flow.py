@@ -3,13 +3,15 @@ import uuid
 from typing import List, Union
 
 from fastapi import status, APIRouter, Body, Response, File, UploadFile
-from jina.clients import py_client
+from jina.parser import set_client_cli_parser
+from jina.helper import get_parsed_args
 from jina.logging import JinaLogger
+from jina.clients import Client
 
 from models.pod import PodModel
 from store import flow_store
 from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
-    HTTPException, GRPCServerError
+    HTTPException
 
 logger = JinaLogger(context='👻 FLOWAPI')
 router = APIRouter()
@@ -204,13 +206,16 @@ async def _ping(
 
     Note: Make sure Flow is running
     """
+    kwargs = {'port_expose': port, 'host': host}
+    _, args, _ = get_parsed_args(kwargs, set_client_cli_parser())
+    client = Client(args)
     try:
-        async with py_client(port_expose=port, host=host) as client:
-            return {
-                'status_code': status.HTTP_200_OK,
-                'detail': 'connected'
-            }
-    except GRPCServerError:
+        client.index(input_fn=['abc'])
+        return {
+            'status_code': status.HTTP_200_OK,
+            'detail': 'connected'
+        }
+    except Exception:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail=f'Cannot connect to GRPC Server on {host}:{port}')
 
