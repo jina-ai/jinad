@@ -55,6 +55,7 @@ def get_pydantic_fields(config: Union[dict, argparse.ArgumentParser]):
 
     if isinstance(config, argparse.ArgumentParser):
         # Ignoring first 3 as they're generic args
+        from jina.parser import KVAppendAction
         for arg in config._actions[3:]:
             arg_key = arg.dest
             arg_type = arg.type
@@ -64,8 +65,9 @@ def get_pydantic_fields(config: Union[dict, argparse.ArgumentParser]):
             # This is to handle the Enum args (to check if it is a bound method)
             if hasattr(arg_type, '__self__'):
                 arg_type = type(arg.default) if arg.default else int
-            elif isinstance(arg_type, argparse.FileType):
-                arg_type = str
+            arg_type = str if isinstance(arg_type, argparse.FileType) else arg_type
+            arg_type = dict if type(arg) == KVAppendAction else arg_type
+
             current_field = Field(default=arg.default,
                                   example=arg.default,
                                   description=arg.help)
