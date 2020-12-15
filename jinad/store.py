@@ -8,7 +8,7 @@ from fastapi import UploadFile
 from jina.flow import Flow
 from jina.helper import yaml, colored, get_random_identity
 from jina.logging import JinaLogger
-from jina.peapods import RuntimePea, Pod
+from jina.peapods import Runtime, Pod
 
 from helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from models.pod import PodModel
@@ -156,8 +156,10 @@ class InMemoryPodStore(InMemoryStore):
         """ Creates a Pod via Flow or via CLI """
 
         try:
+            print(f' pod_arguments {pod_arguments}')
             pod_id = uuid.UUID(pod_arguments.log_id) if isinstance(pod_arguments, Namespace) \
                 else uuid.UUID(pod_arguments['peas'][0].log_id)
+
             pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
@@ -193,7 +195,7 @@ class InMemoryPeaStore(InMemoryStore):
         try:
             pea_id = uuid.UUID(pea_arguments.log_id) if isinstance(pea_arguments, Namespace) \
                 else uuid.UUID(pea_arguments['log_id'])
-            pea = RuntimePea(args=pea_arguments, allow_remote=False)
+            pea = Runtime(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pea: {repr(e)}')
