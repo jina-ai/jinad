@@ -14,6 +14,7 @@ jobs:
         with:
           python-version: 3.7
       - run: |
+          pip install . --no-cache-dir
           echo "JINAD_VERSION=$(python -c "from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.VERSION)")-devel" >> $GITHUB_ENV
           echo "JINAD_PREFIX=$(python -c "from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.PREFIX.strip('/'))")-devel" >> $GITHUB_ENV
       - name: Setup docker buildx
@@ -49,16 +50,19 @@ jobs:
       - uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - run: |
+      - name: create-api-json
+        run: |
           pip install . --no-cache-dir
-          cd api && mkdir -p jinad && cd jinad
           python -c "from jinad.main import write_openapi_schema; write_openapi_schema()"
           echo "JINAD_VERSION=$(python -c "from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.VERSION)")-devel" >> $GITHUB_ENV
       - name: redoc-cli-jinad
         uses: seeebiii/redoc-cli-github-action@v10
         with:
           args: 'bundle schema.json -o ${{env.JINAD_VERSION}}.html'
-      - run: |
+      - name: push-to-api-repo
+        run: |
+          cd api && mkdir -p jinad && cd jinad
+          cp ../../${{env.JINAD_VERSION}}.html .
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
           git add ${{env.JINAD_VERSION}}.html && git commit -m "jinad update ${{env.JINAD_VERSION}} due to ${{github.event_name}} on ${{github.repository}}" && git push
