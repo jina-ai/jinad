@@ -4,8 +4,9 @@ from typing import Dict
 
 from jina.helper import get_random_identity
 from fastapi import UploadFile
-from models.pea import PeaModel
-from models.pod import PodModel
+
+from jinad.models.pea import PeaModel
+from jinad.models.pod import PodModel
 
 
 def get_enum_defaults(parser: argparse.ArgumentParser):
@@ -101,9 +102,3 @@ def create_meta_files_from_upload(current_file: UploadFile):
 def delete_meta_files_from_upload(current_file: UploadFile):
     if os.path.isfile(current_file.filename):
         os.remove(current_file.filename)
-
-
-def dummy_generator():
-    while True:
-        import time; time.sleep(1)
-        yield b"fake it, until we make it"

@@ -8,5 +8,5 @@ nohup fluentd -c $CONF_PATH &
 # Allowing fluentd conf to load by sleeping for 2secs
 sleep 2
 
-# Start jinad (uvcorn/hypercorn) server
+# Start jinad (uvicorn) server
 python jinad/main.py
