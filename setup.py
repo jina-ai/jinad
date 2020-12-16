@@ -11,6 +11,9 @@ try:
 except ModuleNotFoundError:
     __version__ = '0.0.0'
 
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 try:
     with open('README.md', encoding='utf8') as fp:
         _long_description = fp.read()
@@ -33,6 +36,7 @@ setup(
     setup_requires=[
         'setuptools>=18.0',
     ],
+    install_requires=requirements,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
