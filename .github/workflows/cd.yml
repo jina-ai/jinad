@@ -35,3 +35,30 @@ jobs:
           dockerfile: Dockerfiles/Dockerfile
           buildargs: BUILD_DATE, VCS_REF
           tags: "devel, ${{env.JINAD_VERSION}}, ${{env.JINAD_PREFIX}}"
+
+  update-api-docs:
+    # currently deploys api docs on every merge to main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: jina-ai/api
+          path: api
+          token: ${{ secrets.JINA_DEV_BOT }}
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - run: |
+          pip install . --no-cache-dir
+          cd api && mkdir -p jinad && cd jinad
+          python -c "from jinad.main import write_openapi_schema; write_openapi_schema()"
+          echo "JINAD_VERSION=$(python -c "from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.VERSION)")-devel" >> $GITHUB_ENV
+      - name: redoc-cli-jinad
+        uses: seeebiii/redoc-cli-github-action@v10
+        with:
+          args: 'bundle schema.json -o ${{env.JINAD_VERSION}}.html'
+      - run: |
+          git config --local user.email "dev-bot@jina.ai"
+          git config --local user.name "Jina Dev Bot"
+          git add ${{env.JINAD_VERSION}}.html && git commit -m "jinad update ${{env.JINAD_VERSION}} due to ${{github.event_name}} on ${{github.repository}}" && git push

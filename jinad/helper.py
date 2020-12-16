@@ -24,7 +24,6 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser) -> Dict:
     """ Since REST relies on json, reverse conversion of integers to enums is needed """
     default_enums = get_enum_defaults(parser=parser)
     _args = args.copy()
-
     if 'log_config' in _args:
         _args['log_config'] = parser.get_default('--log-config')
 
