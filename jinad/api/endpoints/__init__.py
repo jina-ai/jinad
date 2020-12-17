@@ -2,11 +2,11 @@ from jina import __version__ as jina_version
 from jina.logging import JinaLogger
 from fastapi import status, APIRouter
 
-from config import openapitags_config, server_config
-
+from jinad.config import server_config
 
 logger = JinaLogger(context='👻 JINAD')
 common_router = APIRouter()
+
 
 @common_router.on_event('startup')
 async def startup():
@@ -21,7 +21,7 @@ async def startup():
 )
 async def _status():
     """
-    Used to check if the api is running (returns 200)
+    Used to check if the api is running (returns 200 & jina version)
     """
     # TODO(Deepankar): should we add versions of executors?
     return {

@@ -7,8 +7,8 @@
 set -ex
 
 RELEASENOTE='./node_modules/.bin/git-release-notes'
-VER_TAG='VERSION: str = '
-INIT_FILE='jinad/config.py'
+VER_TAG='__version__ = '
+INIT_FILE='jinad/__init__.py'
 LOG_FILE='./CHANGELOG.md'
 
 function make_release_note {
@@ -23,9 +23,9 @@ function make_release_note {
 }
 
 function clean_build {
-    rm -rf dist
-    rm -rf *.egg-info
-    rm -rf build
+  rm -rf dist
+  rm -rf *.egg-info
+  rm -rf build
 }
 
 function pub_pypi {
@@ -36,7 +36,7 @@ function pub_pypi {
 }
 
 function escape_slashes {
-    sed 's/\//\\\//g'
+  sed 's/\//\\\//g'
 }
 
 function update_ver_line {
@@ -44,18 +44,16 @@ function update_ver_line {
   local NEW_LINE=$2
   local FILE=$3
   local NEW=$(echo "${NEW_LINE}" | escape_slashes)
-  echo ${OLD_LINE_PATTERN}
-  echo ${NEW}
-  echo ${FILE}
-  sed -i '/'"${OLD_LINE_PATTERN}"'/s/.*/'"    ${NEW}"'/' "${FILE}"
+  sed -i '/'"${OLD_LINE_PATTERN}"'/s/.*/'"${NEW}"'/' "${FILE}"
   head -n10 ${FILE}
 }
 
 function git_commit {
   git config --local user.email "dev-bot@jina.ai"
   git config --local user.name "Jina Dev Bot"
-  git tag "v$RELEASE_VER" -m "$(cat ./CHANGELOG.tmp)"
-  git add $INIT_FILE ${LOG_FILE}
+  # disabling tagging for now, as we don't have changelog yet
+  # git tag "v$RELEASE_VER" -m "$(cat ./CHANGELOG.tmp)"
+  git add $INIT_FILE
   git commit -m "chore(version): the next version will be ${NEXT_VER}"
 }
 
@@ -74,7 +72,7 @@ if [[ "$LAST_COMMIT" != "$LAST_UPDATE" ]]; then
   exit 1;
 fi
 
-export RELEASE_VER=$(python -c 'from jinad.config import FastAPIConfig;api=FastAPIConfig();print(api.VERSION)')
+export RELEASE_VER=$(python -c 'import jinad;print(jinad.__version__)')
 printf "to-be released version: \e[1;32m$RELEASE_VER\e[0m\n"
 
 LAST_VER=$(git tag -l | sort -V | tail -n1)
@@ -83,7 +81,8 @@ printf "last version: \e[1;32m$LAST_VER\e[0m\n"
 NEXT_VER=$(echo $RELEASE_VER | awk -F. -v OFS=. 'NF==1{print ++$NF}; NF>1{$NF=sprintf("%0*d", length($NF), ($NF+1)); print}')
 printf "bump main version: \e[1;32m$NEXT_VER\e[0m\n"
 
-make_release_note
+# Disabling release notes for now
+# make_release_note
 
 pub_pypi
 
