@@ -11,7 +11,7 @@ class FastAPIConfig(BaseConfig):
     NAME: str = 'Jina Remote Manager'
     DESCRIPTION: str = 'REST API for managing Jina on Remote'
     VERSION: str = __version__
-    PREFIX: str = __prefix__
+    PREFIX: str = '/' + __prefix__
 
 
 class OpenAPITags(BaseConfig):
