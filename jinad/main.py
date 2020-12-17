@@ -2,8 +2,8 @@ from collections import namedtuple
 
 from fastapi import FastAPI
 
-from api.endpoints import common_router, flow, pod, pea, logs
-from config import jinad_config, fastapi_config, server_config, openapitags_config
+from jinad.api.endpoints import common_router, flow, pod, pea, logs
+from jinad.config import jinad_config, fastapi_config, server_config, openapitags_config
 
 
 def get_app():
@@ -42,25 +42,12 @@ def get_app():
     return app
 
 
-def hypercorn_serve(app: 'FastAPI'):
-    """Sets uvloop as current eventloop, triggers `hypercorn.serve` using asyncio
-    """
-    import uvloop
-    import asyncio
-    from hypercorn.config import Config
-    from hypercorn.asyncio import serve
-    config = Config()
-    config.bind = [f'{server_config.HOST}:{server_config.PORT}']
-    config.loglevel = 'ERROR'
-
-    asyncio.set_event_loop_policy(
-        uvloop.EventLoopPolicy()
-    )
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(
-        serve(app, config)
-    )
+def write_openapi_schema(filename='schema.json'):
+    import json
+    app = get_app()
+    schema = app.openapi()
+    with open(filename, 'w') as f:
+        json.dump(schema, f)
 
 
 def uvicorn_serve(app: 'FastAPI'):

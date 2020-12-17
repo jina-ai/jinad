@@ -4,15 +4,13 @@ from typing import Dict, List
 from fastapi import status, APIRouter, File, UploadFile
 from jina.logging import JinaLogger
 
-from helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload, dummy_generator
-from models.pod import PodModel
-from store import pod_store
-from config import openapitags_config
-from excepts import HTTPException, PodStartException
+from jinad.store import pod_store
+from jinad.models.pod import PodModel
+from jinad.excepts import HTTPException, PodStartException
+from jinad.helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload
 
 logger = JinaLogger(context='👻 PODAPI')
 router = APIRouter()
-TAG = openapitags_config.POD_API_TAGS[0]['name']
 
 
 @router.put(
