@@ -41,6 +41,9 @@ setup(
     setup_requires=[
         'setuptools>=18.0',
     ],
+    entry_points={
+        'console_scripts': ['jinad=jinad.main:start'],
+    },
     install_requires=install_requires,
     extras_require=extras_require,
     classifiers=[
