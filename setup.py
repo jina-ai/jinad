@@ -1,24 +1,29 @@
-from os import path
+import os
 from setuptools import setup
 from setuptools import find_packages
 
 try:
     pkg_name = 'jinad'
-    libinfo_py = path.join(pkg_name, '__init__.py')
+    libinfo_py = os.path.join(pkg_name, '__init__.py')
     libinfo_content = open(libinfo_py, 'r', encoding='utf8').readlines()
     version_line = [l.strip() for l in libinfo_content if l.startswith('__version__')][0]
     exec(version_line)  # gives __version__
-except ModuleNotFoundError:
+except FileNotFoundError:
     __version__ = '0.0.0'
-
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
 
 try:
     with open('README.md', encoding='utf8') as fp:
         _long_description = fp.read()
 except FileNotFoundError:
     _long_description = ''
+
+# set JINAVER environment variable (defaults to jina-core master branch)
+# export JINAVER=jina (from official pypi)
+# export JINAVER=jina@git+https://github.com/jina-ai/jina.git (from jina master branch)
+# export JINAVER=jina@git+https://github.com/jina-ai/jina.git@my-branch (from jina my-branch)
+jinaver = os.environ.get('JINAVER', 'jina@git+https://github.com/jina-ai/jina.git')
+install_requires = [jinaver, 'fastapi', 'uvicorn', 'pydantic', 'python-multipart', 'requests']
+extras_require = {'all': ['flaky', 'pytest', 'pytest-asyncio', 'pytest-cov']}
 
 setup(
     name=pkg_name,
@@ -36,7 +41,8 @@ setup(
     setup_requires=[
         'setuptools>=18.0',
     ],
-    install_requires=requirements,
+    install_requires=install_requires,
+    extras_require=extras_require,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
