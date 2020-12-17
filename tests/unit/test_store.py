@@ -1,18 +1,31 @@
-from jinad.store import InMemoryPeaStore, InMemoryPodStore
+from pathlib import Path
+
+import pytest
+
 from jina.parser import set_pea_parser, set_pod_parser
-from jina.peapods.peas import BasePea
+from jina.peapods.runtimes.local import LocalRuntime
 from jina.peapods.pods import BasePod
+from jina.flow import Flow
+
+from jinad.store import InMemoryPeaStore, InMemoryPodStore, InMemoryFlowStore
+from jinad.helper import PodModel
+
+cur_dir = Path(__file__).parent
 
 
-def test_pea_store():
-    args = set_pea_parser().parse_args([])
-    store = InMemoryPeaStore()
+def pod_list():
+    return [PodModel(), PodModel(), PodModel()]
+
+
+@pytest.mark.parametrize('config', [str(cur_dir / 'yaml' / 'flow.yml'), pod_list()])
+def test_flow_store(config):
+    store = InMemoryFlowStore()
     with store._session():
-        pea_id = store._create(pea_arguments=args)
-        assert pea_id in store._store.keys()
-        assert isinstance(store._store[pea_id]['pea'], BasePea)
-        store._delete(pea_id)
-        assert pea_id not in store._store.keys()
+        flow_id = store._create(config=config)
+        assert flow_id in store._store.keys()
+        assert isinstance(store._store[flow_id]['flow'], Flow)
+        store._delete(flow_id)
+        assert flow_id not in store._store.keys()
 
 
 def test_pod_store():
@@ -24,3 +37,14 @@ def test_pod_store():
         assert isinstance(store._store[pod_id]['pod'], BasePod)
         store._delete(pod_id)
         assert pod_id not in store._store.keys()
+
+
+def test_pea_store():
+    args = set_pea_parser().parse_args([])
+    store = InMemoryPeaStore()
+    with store._session():
+        pea_id = store._create(pea_arguments=args)
+        assert pea_id in store._store.keys()
+        # assert isinstance(store._store[pea_id]['pea'], LocalRuntime)
+        store._delete(pea_id)
+        assert pea_id not in store._store.keys()

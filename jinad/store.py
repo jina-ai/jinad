@@ -13,7 +13,7 @@ from jina.peapods import Runtime, Pod
 from jinad.models.pod import PodModel
 from jinad.helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from jinad.excepts import PeaFailToStart, FlowYamlParseException, FlowCreationException, \
-    FlowStartException, PodStartException, PeaStartException
+    FlowStartException, PodStartException, PeaStartException, FlowBadInputException
 
 
 class InMemoryStore:
@@ -82,8 +82,7 @@ class InMemoryFlowStore(InMemoryStore):
             except Exception as e:
                 self.logger.error(f'Got error while loading from yaml {repr(e)}')
                 raise FlowYamlParseException
-
-        if isinstance(config, list):
+        elif isinstance(config, list):
             try:
                 flow = Flow()
                 # it is strange to build from a given flow, it seems like a lazy construction pattern could be used?
@@ -92,6 +91,8 @@ class InMemoryFlowStore(InMemoryStore):
             except Exception as e:
                 self.logger.error(f'Got error while creating flows via pods: {repr(e)}')
                 raise FlowCreationException
+        else:
+            raise FlowBadInputException(f'Not valid Flow config input {type(config)}')
 
         try:
             flow.args.log_id = flow.args.identity if 'identity' in flow.args else get_random_identity()
