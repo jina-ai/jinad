@@ -24,6 +24,9 @@ WORKDIR /jinad/
 ADD setup.py README.md requirements.txt Dockerfiles/entrypoint.sh ./
 ADD jinad ./jinad
 
+RUN apt-get update && \
+      apt-get install -y git ruby-dev build-essential && \
+      gem install fluentd --no-doc
 RUN chmod +x entrypoint.sh
 RUN pip install . --no-cache-dir
 
