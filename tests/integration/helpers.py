@@ -22,7 +22,7 @@ def get_results(query, top_k=10):
     return call_api(
         method="post",
         url="http://0.0.0.0:45678/api/search",
-        payload={"top_k": top_k, "data": [f"text:{query}"]},
+        payload={"top_k": top_k, "data": [query]},
     )
 
 

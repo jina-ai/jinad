@@ -13,12 +13,9 @@ from ..helpers import (
 
 
 DIRECTORY = Path("tests/integration/test_index_query/")
-COMPOSE_YAML = "docker-compose.yml"
-FLOW_YAML = "flow.yml"
-POD_DIR = "pods"
-COMPOSE_YAML = DIRECTORY / COMPOSE_YAML
-FLOW_YAML = DIRECTORY / FLOW_YAML
-POD_DIR = DIRECTORY / POD_DIR
+COMPOSE_YAML = DIRECTORY / "docker-compose.yml"
+FLOW_YAML = DIRECTORY / "flow.yml"
+POD_DIR = DIRECTORY / "pods"
 
 
 def test_flow():
@@ -53,9 +50,9 @@ def test_flow():
 
     print(f"Successfully started the flow: {FLOW_ID}. Let's send some query")
 
-    TEXT_MATCHED = get_results(query="anything will match the same")["search"]["docs"][
-        0
-    ]["matches"][0]["text"]
+    TEXT_MATCHED = get_results(query="text:anything will match the same")["search"][
+        "docs"
+    ][0]["matches"][0]["text"]
 
     print(f"document matched has the text: {TEXT_INDEXED}")
 
@@ -71,8 +68,4 @@ def test_flow():
 
     EXPECTED_TEXT = "text:hey, dude"
 
-    if EXPECTED_TEXT == TEXT_MATCHED:
-        print("Success")
-    else:
-        print("Fail")
-        sys.exit(1)
+    assert EXPECTED_TEXT == TEXT_MATCHED
