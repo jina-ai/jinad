@@ -1,6 +1,5 @@
 import uuid
 import pytest
-from unittest.mock import Mock, patch
 from fastapi import UploadFile
 
 from api.endpoints import flow
@@ -30,6 +29,7 @@ def mock_fetch_success(**kwargs):
 
 def mock_fetch_exception(**kwargs):
     raise KeyError
+
 
 @pytest.mark.asyncio
 async def test_create_from_pods_success(monkeypatch):
