@@ -144,7 +144,7 @@ class InMemoryFlowStore(InMemoryStore):
         if 'flow' in flow:
             self._close(context=flow['flow'])
 
-        if 'files' in flow:
+        if 'files' in flow and flow['files']:
             for current_file in flow['files']:
                 delete_meta_files_from_upload(current_file=current_file)
 
