@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: 3.7
       - run: |
-          git fetch --depth=1 origin +ref/tags/*:refs/tags/*
+          # git fetch --depth=1 origin +ref/tags/*:refs/tags/*
           npm install git-release-notes
           pip install twine wheel
       - run: ./scripts/release.sh
