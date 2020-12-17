@@ -8,7 +8,8 @@ RUN apt-get update && \
 
 RUN python -m pip install --no-cache-dir --upgrade pip && \
     git clone https://github.com/jina-ai/jinad.git && \
-    pip install $(grep -ivE "jina" jinad/requirements.txt)
+    pip install $(grep -ivE "jina" jinad/requirements.txt) && \
+    cd jinad && python setup.py install
 
 COPY . /
 
