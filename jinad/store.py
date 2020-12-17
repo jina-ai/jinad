@@ -156,7 +156,6 @@ class InMemoryPodStore(InMemoryStore):
         """ Creates a Pod via Flow or via CLI """
 
         try:
-            print(f' pod_arguments {pod_arguments}')
             pod_id = uuid.UUID(pod_arguments.log_id) if isinstance(pod_arguments, Namespace) \
                 else uuid.UUID(pod_arguments['peas'][0].log_id)
 
