@@ -21,13 +21,10 @@ LABEL org.opencontainers.image.created=$BUILD_DATE \
 
 WORKDIR /jinad/
 
-ADD README.md requirements.txt Dockerfiles/entrypoint.sh ./
+ADD setup.py README.md requirements.txt Dockerfiles/entrypoint.sh ./
 ADD jinad ./jinad
 
 RUN chmod +x entrypoint.sh
-RUN apt-get update && \
-      apt-get install -y git ruby-dev build-essential && \
-      gem install fluentd --no-doc
-RUN pip install -r requirements.txt
+RUN pip install . --no-cache-dir
 
 ENTRYPOINT ["bash", "-c", "./entrypoint.sh"]

@@ -8,12 +8,12 @@ from typing import Optional
 from jina.logging import JinaLogger
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from config import log_config
-from excepts import HTTPException, TimeoutException, ClientExit
+from jinad.config import log_config
+from jinad.excepts import HTTPException, TimeoutException, ClientExit
+
 
 logger = JinaLogger(context='👻 LOGS')
 router = APIRouter()
-
 
 async def tail(file_handler, line_num_from=0, timeout=5):
     """ asynchronous tail file """

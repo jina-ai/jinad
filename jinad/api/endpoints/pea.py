@@ -4,10 +4,10 @@ from typing import List
 from fastapi import status, APIRouter, File, UploadFile
 from jina.logging import JinaLogger
 
-from helper import basepea_to_namespace, create_meta_files_from_upload, dummy_generator
-from models.pea import PeaModel
-from store import pea_store
-from excepts import HTTPException, PeaStartException
+from jinad.store import pea_store
+from jinad.models.pea import PeaModel
+from jinad.excepts import HTTPException, PeaStartException
+from jinad.helper import basepea_to_namespace, create_meta_files_from_upload
 
 logger = JinaLogger(context='👻 PEAAPI')
 router = APIRouter()
