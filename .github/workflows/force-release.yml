@@ -1,13 +1,12 @@
 name: Hotfix Release
 
 on:
-  push:
-    branches:
-      - main:
+  workflow_dispatch:
 
 jobs:
   manual-release:
-    if: "startsWith(github.event.head_commit.message, 'build: hotfix')"
+    # lack of better ways to access control a manual workflow dispatch
+    if: github.actor == 'deepankarm' || github.actor == 'nan-wang'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2

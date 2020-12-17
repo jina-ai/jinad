@@ -24,7 +24,7 @@ setup(
     name=pkg_name,
     version=__version__,
     description='Jinad is the daemon tool for running Jina on remote machines. Jina is the cloud-native neural search solution powered by the state-of-the-art AI and deep learning',
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests*",)),
     author='Jina Dev Team',
     author_email='dev-team@jina.ai',
     license='Apache 2.0',
