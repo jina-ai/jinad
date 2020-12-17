@@ -26,8 +26,9 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
       - if: failure()
         run: echo "nothing to release"
-      - name: bumping master version
+      - name: bumping main branch version
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.JINA_DEV_BOT }}
+          branch: main
           tags: true

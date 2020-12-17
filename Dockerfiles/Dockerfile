@@ -4,9 +4,11 @@ ARG VCS_REF
 ARG BUILD_DATE
 ARG JINAD_PORT=8000
 ARG JINAD_CONTEXT=all
+ARG JINAVER=jina@git+https://github.com/jina-ai/jina.git
 
 ENV JINAD_PORT ${JINAD_PORT}
 ENV JINAD_CONTEXT ${JINAD_CONTEXT}
+ENV JINAVER ${JINAVER}
 
 LABEL org.opencontainers.image.created=$BUILD_DATE \
       org.opencontainers.image.authors="dev-team@jina.ai" \
