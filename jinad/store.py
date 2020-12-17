@@ -179,10 +179,6 @@ class InMemoryPodStore(InMemoryStore):
         if 'pod' in pod:
             self._close(context=pod['pod'])
 
-        if 'files' in pod:
-            for current_file in pod['files']:
-                delete_meta_files_from_upload(current_file=current_file)
-
         self.logger.info(f'Closed pod with pod_id {colored(pod_id, "cyan")}')
 
 
@@ -213,10 +209,6 @@ class InMemoryPeaStore(InMemoryStore):
 
         if 'pea' in pea:
             self._close(context=pea['pea'])
-
-        if 'files' in pea:
-            for current_file in pea['files']:
-                delete_meta_files_from_upload(current_file=current_file)
 
         self.logger.info(f'Closed pea with pea_id {colored(pea_id, "cyan")}')
 
