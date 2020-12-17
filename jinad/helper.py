@@ -4,8 +4,9 @@ from typing import Dict
 
 from jina.helper import get_random_identity
 from fastapi import UploadFile
-from models.pea import PeaModel
-from models.pod import PodModel
+
+from jinad.models.pea import PeaModel
+from jinad.models.pod import PodModel
 
 
 def get_enum_defaults(parser: argparse.ArgumentParser):
@@ -23,7 +24,6 @@ def handle_enums(args: Dict, parser: argparse.ArgumentParser) -> Dict:
     """ Since REST relies on json, reverse conversion of integers to enums is needed """
     default_enums = get_enum_defaults(parser=parser)
     _args = args.copy()
-
     if 'log_config' in _args:
         _args['log_config'] = parser.get_default('--log-config')
 
@@ -101,9 +101,3 @@ def create_meta_files_from_upload(current_file: UploadFile):
 def delete_meta_files_from_upload(current_file: UploadFile):
     if os.path.isfile(current_file.filename):
         os.remove(current_file.filename)
-
-
-def dummy_generator():
-    while True:
-        import time; time.sleep(1)
-        yield b"fake it, until we make it"

@@ -1,3 +1,4 @@
+from . import __version__, __prefix__
 from pydantic import BaseSettings, validator
 
 
@@ -9,8 +10,8 @@ class BaseConfig(BaseSettings):
 class FastAPIConfig(BaseConfig):
     NAME: str = 'Jina Remote Manager'
     DESCRIPTION: str = 'REST API for managing Jina on Remote'
-    VERSION: str = '0.0.2'
-    PREFIX: str = '/v1'
+    VERSION: str = __version__
+    PREFIX: str = __prefix__
 
 
 class OpenAPITags(BaseConfig):

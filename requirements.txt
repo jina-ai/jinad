@@ -1,7 +1,6 @@
-jina[http]>=0.7.12
+jina@git+https://github.com/jina-ai/jina.git
 fastapi
 uvicorn
-hypercorn
 pydantic
 python-multipart
 requests

@@ -8,9 +8,9 @@ from jina.helper import get_parsed_args
 from jina.logging import JinaLogger
 from jina.clients import Client
 
-from models.pod import PodModel
-from store import flow_store
-from excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
+from jinad.store import flow_store
+from jinad.models.pod import PodModel
+from jinad.excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException
 
 logger = JinaLogger(context='👻 FLOWAPI')
