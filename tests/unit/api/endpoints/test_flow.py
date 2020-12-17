@@ -30,6 +30,7 @@ def mock_fetch_success(**kwargs):
 def mock_fetch_exception(**kwargs):
     raise KeyError
 
+
 @pytest.mark.asyncio
 async def test_create_from_pods_success(monkeypatch):
     monkeypatch.setattr(flow.flow_store, '_create', mock_create_success)
