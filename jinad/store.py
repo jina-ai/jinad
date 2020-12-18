@@ -8,12 +8,12 @@ from fastapi import UploadFile
 from jina.flow import Flow
 from jina.helper import yaml, colored, get_random_identity
 from jina.logging import JinaLogger
-from jina.peapods import Pea, Pod
+from jina.peapods import Runtime, Pod
 
 from jinad.models.pod import PodModel
 from jinad.helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from jinad.excepts import PeaFailToStart, FlowYamlParseException, FlowCreationException, \
-    FlowStartException, PodStartException, PeaStartException
+    FlowStartException, PodStartException, PeaStartException, FlowBadInputException
 
 
 class InMemoryStore:
@@ -82,8 +82,7 @@ class InMemoryFlowStore(InMemoryStore):
             except Exception as e:
                 self.logger.error(f'Got error while loading from yaml {repr(e)}')
                 raise FlowYamlParseException
-
-        if isinstance(config, list):
+        elif isinstance(config, list):
             try:
                 flow = Flow()
                 # it is strange to build from a given flow, it seems like a lazy construction pattern could be used?
@@ -92,6 +91,8 @@ class InMemoryFlowStore(InMemoryStore):
             except Exception as e:
                 self.logger.error(f'Got error while creating flows via pods: {repr(e)}')
                 raise FlowCreationException
+        else:
+            raise FlowBadInputException(f'Not valid Flow config input {type(config)}')
 
         try:
             flow.args.log_id = flow.args.identity if 'identity' in flow.args else get_random_identity()
@@ -143,7 +144,7 @@ class InMemoryFlowStore(InMemoryStore):
         if 'flow' in flow:
             self._close(context=flow['flow'])
 
-        if 'files' in flow:
+        if 'files' in flow and flow['files']:
             for current_file in flow['files']:
                 delete_meta_files_from_upload(current_file=current_file)
 
@@ -158,6 +159,7 @@ class InMemoryPodStore(InMemoryStore):
         try:
             pod_id = uuid.UUID(pod_arguments.log_id) if isinstance(pod_arguments, Namespace) \
                 else uuid.UUID(pod_arguments['peas'][0].log_id)
+
             pod = Pod(args=pod_arguments, allow_remote=False)
             pod = self._start(context=pod)
         except Exception as e:
@@ -193,7 +195,7 @@ class InMemoryPeaStore(InMemoryStore):
         try:
             pea_id = uuid.UUID(pea_arguments.log_id) if isinstance(pea_arguments, Namespace) \
                 else uuid.UUID(pea_arguments['log_id'])
-            pea = Pea(args=pea_arguments, allow_remote=False)
+            pea = Runtime(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pea: {repr(e)}')

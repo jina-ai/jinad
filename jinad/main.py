@@ -61,6 +61,10 @@ def uvicorn_serve(app: 'FastAPI'):
     server.run()
 
 
-if __name__ == "__main__":
+def start():
     app = get_app()
     uvicorn_serve(app=app)
+
+
+if __name__ == "__main__":
+    start()

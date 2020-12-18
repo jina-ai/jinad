@@ -1,13 +1,12 @@
 name: Hotfix Release
 
 on:
-  push:
-    branches:
-      - main:
+  workflow_dispatch:
 
 jobs:
   manual-release:
-    if: "startsWith(github.event.head_commit.message, 'build: hotfix')"
+    # lack of better ways to access control a manual workflow dispatch
+    if: github.actor == 'deepankarm' || github.actor == 'nan-wang'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -18,7 +17,7 @@ jobs:
         with:
           python-version: 3.7
       - run: |
-          git fetch --depth=1 origin +ref/tags/*:refs/tags/*
+          # git fetch --depth=1 origin +ref/tags/*:refs/tags/*
           npm install git-release-notes
           pip install twine wheel
       - run: ./scripts/release.sh
@@ -27,8 +26,9 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
       - if: failure()
         run: echo "nothing to release"
-      - name: bumping master version
+      - name: bumping main branch version
         uses: ad-m/github-push-action@master
         with:
           github_token: ${{ secrets.JINA_DEV_BOT }}
+          branch: main
           tags: true

@@ -33,15 +33,19 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            sudo apt-get install libsndfile1
-          fi
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install '.[all]' --no-cache-dir
       - name: Test with pytest
         run: |
-          pytest --force-flaky --min-passes 1 --max-runs 5 -v tests/unit
+          pytest --force-flaky --min-passes 1 --max-runs 5 --cov=jinad --cov-report=xml -v tests/unit
+          mv coverage.xml unit-test-coverage.xml
         timeout-minutes: 30
+      - name: Upload coverage result from unit-test
+        if: ${{ matrix.python-version }} == 3.7 && ${{ matrix.os }} == ubuntu-latest
+        uses: actions/upload-artifact@v1
+        with:
+          name: unit-test-codecoverage
+          path: ./unit-test-coverage.xml
 
   integration-test:
     needs: commit-lint
@@ -61,16 +65,54 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          if [ "${{ matrix.os }}" == "ubuntu-latest" ]; then
-            sudo apt-get install libsndfile1
-          fi
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install '.[all]' --no-cache-dir
       - name: Build pod image
         run: |
           docker build -f tests/integration/distributed/hub_mwu/Dockerfile tests/integration/distributed/hub_mwu -t hubpod:test
         timeout-minutes: 5
       - name: Test with pytest
         run: |
-          pytest --force-flaky --min-passes 1 --max-runs 5 -v tests/integration
+          pytest --force-flaky --min-passes 1 --max-runs 5 --cov=jinad --cov-report=xml -v tests/integration
+          mv coverage.xml integration-test-coverage.xml
         timeout-minutes: 30
+      - name: Upload coverage result from integration-test
+        if: ${{ matrix.python-version }} == 3.7 && ${{ matrix.os }} == ubuntu-latest
+        uses: actions/upload-artifact@v1
+        with:
+          name: integration-test-codecoverage
+          path: ./integration-test-coverage.xml
+
+  codecov:
+    needs: [unit-test, integration-test]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: [3.7]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Download coverage result from unit-test
+        uses: actions/download-artifact@v1
+        with:
+          name: unit-test-codecoverage
+      - name: Download coverage result from integration-test
+        uses: actions/download-artifact@v1
+        with:
+          name: integration-test-codecoverage
+      - name: Upload coverage from unit-test to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: unit-test-codecoverage/unit-test-coverage.xml
+          env_vars: OS,PYTHON
+          name: codecov
+          fail_ci_if_error: false
+      - name: Upload coverage from integration-test to Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          file: integration-test-codecoverage/integration-test-coverage.xml
+          env_vars: OS,PYTHON
+          name: codecov
+          fail_ci_if_error: false

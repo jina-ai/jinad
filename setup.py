@@ -1,18 +1,15 @@
-from os import path
+import os
 from setuptools import setup
 from setuptools import find_packages
 
 try:
     pkg_name = 'jinad'
-    libinfo_py = path.join(pkg_name, '__init__.py')
+    libinfo_py = os.path.join(pkg_name, '__init__.py')
     libinfo_content = open(libinfo_py, 'r', encoding='utf8').readlines()
     version_line = [l.strip() for l in libinfo_content if l.startswith('__version__')][0]
     exec(version_line)  # gives __version__
-except ModuleNotFoundError:
+except FileNotFoundError:
     __version__ = '0.0.0'
-
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
 
 try:
     with open('README.md', encoding='utf8') as fp:
@@ -20,11 +17,17 @@ try:
 except FileNotFoundError:
     _long_description = ''
 
+install_requires = ['fastapi', 'uvicorn', 'pydantic', 'python-multipart', 'requests']
+extras_require = {'all': ['flaky', 'pytest', 'pytest-asyncio', 'pytest-cov']}
+jinaver = os.environ.get('JINAVER', 'jina')
+if jinaver:
+    install_requires.append(jinaver)
+
 setup(
     name=pkg_name,
     version=__version__,
     description='Jinad is the daemon tool for running Jina on remote machines. Jina is the cloud-native neural search solution powered by the state-of-the-art AI and deep learning',
-    packages=find_packages(),
+    packages=find_packages(exclude=("tests*",)),
     author='Jina Dev Team',
     author_email='dev-team@jina.ai',
     license='Apache 2.0',
@@ -36,7 +39,11 @@ setup(
     setup_requires=[
         'setuptools>=18.0',
     ],
-    install_requires=requirements,
+    entry_points={
+        'console_scripts': ['jinad=jinad.main:start'],
+    },
+    install_requires=install_requires,
+    extras_require=extras_require,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

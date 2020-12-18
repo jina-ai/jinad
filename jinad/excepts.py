@@ -1,12 +1,17 @@
 from jina.excepts import PeaFailToStart, GRPCServerError
 from fastapi.exceptions import HTTPException
 
+
 class FlowYamlParseException(Exception):
     """ Exception during loading yaml file for Flow creation"""
 
 
 class FlowCreationException(Exception):
     """ Exception during flow creation via pods"""
+
+
+class FlowBadInputException(Exception):
+    """ Exception during loading Flow, no valid configuration"""
 
 
 class FlowStartException(Exception):

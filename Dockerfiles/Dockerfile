@@ -4,9 +4,11 @@ ARG VCS_REF
 ARG BUILD_DATE
 ARG JINAD_PORT=8000
 ARG JINAD_CONTEXT=all
+ARG JINAVER=jina@git+https://github.com/jina-ai/jina.git
 
 ENV JINAD_PORT ${JINAD_PORT}
 ENV JINAD_CONTEXT ${JINAD_CONTEXT}
+ENV JINAVER ${JINAVER}
 
 LABEL org.opencontainers.image.created=$BUILD_DATE \
       org.opencontainers.image.authors="dev-team@jina.ai" \
@@ -21,13 +23,13 @@ LABEL org.opencontainers.image.created=$BUILD_DATE \
 
 WORKDIR /jinad/
 
-ADD README.md requirements.txt Dockerfiles/entrypoint.sh ./
+ADD setup.py README.md requirements.txt Dockerfiles/entrypoint.sh ./
 ADD jinad ./jinad
 
-RUN chmod +x entrypoint.sh
 RUN apt-get update && \
       apt-get install -y git ruby-dev build-essential && \
       gem install fluentd --no-doc
-RUN pip install -r requirements.txt
+RUN chmod +x entrypoint.sh
+RUN pip install . --no-cache-dir
 
 ENTRYPOINT ["bash", "-c", "./entrypoint.sh"]
