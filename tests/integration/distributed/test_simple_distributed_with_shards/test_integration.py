@@ -11,7 +11,7 @@ from tests.helpers import (
     get_results,
 )
 
-directory = Path("tests/integration/distributed/test_simple_distributed/")
+directory = Path("tests/integration/distributed/test_simple_distributed_with_shards/")
 compose_yml = directory / "docker-compose.yml"
 flow_yml = directory / "flow.yml"
 pod_dir = directory / "pods"

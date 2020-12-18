@@ -8,12 +8,12 @@ RUN apt-get update && \
 
 RUN python -m pip install --no-cache-dir --upgrade pip && \
     git clone https://github.com/jina-ai/jinad.git && \
-    pip install $(grep -ivE "jina" jinad/requirements.txt) && \
+    pip install $(grep -ivE "jina" jinad/requirements.txt) --ignore-installed && \
     cd jinad && python setup.py install
 
 COPY . /
 
-COPY tests/integration/test_index_query/entrypoint.sh .
+COPY tests/integration/distributed/test_simple_distributed_with_shards/entrypoint.sh .
 
 RUN chmod +x entrypoint.sh
 

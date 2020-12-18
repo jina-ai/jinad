@@ -5,11 +5,15 @@ import requests
 
 
 def start_docker_compose(file_path):
-    os.system(f"docker-compose -f {file_path} --project-directory . up  --build -d")
+    os.system(
+        f"docker-compose -f {file_path} --project-directory . up  --build -d --remove-orphans"
+    )
 
 
 def stop_docker_compose(file_path):
-    os.system(f"docker-compose -f {file_path} --project-directory . down")
+    os.system(
+        f"docker-compose -f {file_path} --project-directory . down --remove-orphans"
+    )
 
 
 def call_api(method, url, payload=None, headers={"Content-Type": "application/json"}):
@@ -26,14 +30,18 @@ def get_results(query, top_k=10):
     )
 
 
-def send_flow(flow_yaml, pod_dir):
-    uses_files = [
-        ("uses_files", open(file_path)) for file_path in Path(pod_dir).glob("*.yml")
-    ]
-    pymodules_files = [
-        ("pymodules_files", open(file_path))
-        for file_path in Path(pod_dir).rglob("*.py")
-    ]
+def send_flow(flow_yaml, pod_dir=None):
+    pymodules_files = []
+    uses_files = []
+
+    if pod_dir is not None:
+        uses_files = [
+            ("uses_files", open(file_path)) for file_path in Path(pod_dir).glob("*.yml")
+        ]
+        pymodules_files = [
+            ("pymodules_files", open(file_path))
+            for file_path in Path(pod_dir).rglob("*.py")
+        ]
 
     files = [
         *uses_files,

@@ -66,6 +66,10 @@ jobs:
           fi
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+      - name: Build pod image
+        run: |
+          docker build -f tests/integration/distributed/hub_mwu/Dockerfile tests/integration/distributed/hub_mwu -t hubpod:test
+        timeout-minutes: 5
       - name: Test with pytest
         run: |
           pytest --force-flaky --min-passes 1 --max-runs 5 -v tests/integration

@@ -13,7 +13,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip && \
 
 COPY . /
 
-COPY tests/integration/distributed/test_simple_distributed/entrypoint.sh .
+COPY tests/integration/distributed/test_index_query/entrypoint.sh .
 
 RUN chmod +x entrypoint.sh
 

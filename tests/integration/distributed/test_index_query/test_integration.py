@@ -3,7 +3,7 @@ import pytest
 import sys
 import time
 
-from ..helpers import (
+from tests.helpers import (
     start_docker_compose,
     stop_docker_compose,
     send_flow,
@@ -12,13 +12,13 @@ from ..helpers import (
 )
 
 
-DIRECTORY = Path("tests/integration/test_index_query/")
+DIRECTORY = Path("tests/integration/distributed/test_index_query/")
 COMPOSE_YAML = DIRECTORY / "docker-compose.yml"
 FLOW_YAML = DIRECTORY / "flow.yml"
 POD_DIR = DIRECTORY / "pods"
 
 
-def test_flow():
+def test_index_query():
     if Path.cwd().name != "jinad":
         sys.exit("test_integration.py should only be run from the jinad base directory")
 
@@ -39,12 +39,12 @@ def test_flow():
     print(f"Indexed document has the text: {TEXT_INDEXED}")
 
     r = call_api(method="get", url=f"http://localhost:8000/v1/flow/{FLOW_ID}")
-    print(r["status_code"])
+    assert r["status_code"] == 200
 
     r = call_api(
         method="delete", url=f"http://localhost:8000/v1/flow?flow_id={FLOW_ID}"
     )
-    print(r["status_code"])
+    assert r["status_code"] == 200
 
     FLOW_ID = send_flow(FLOW_YAML, POD_DIR)["flow_id"]
 
@@ -54,15 +54,15 @@ def test_flow():
         "docs"
     ][0]["matches"][0]["text"]
 
-    print(f"document matched has the text: {TEXT_INDEXED}")
+    print(f"document matched has the text: {TEXT_MATCHED}")
 
     r = call_api(method="get", url=f"http://localhost:8000/v1/flow/{FLOW_ID}")
-    print(r["status_code"])
+    assert r["status_code"] == 200
 
     r = call_api(
         method="delete", url=f"http://localhost:8000/v1/flow?flow_id={FLOW_ID}"
     )
-    print(r["status_code"])
+    assert r["status_code"] == 200
 
     stop_docker_compose(COMPOSE_YAML)
 
