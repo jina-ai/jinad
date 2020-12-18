@@ -40,12 +40,12 @@ def test_flow():
         assert text_indexed == text
 
     r = call_api(method='get', url=f'http://localhost:8000/v1/flow/{flow_id}')
-    assert r["status_code"] == 200
+    assert r['status_code'] == 200
 
     r = call_api(
         method='delete', url=f'http://localhost:8000/v1/flow?flow_id={flow_id}'
     )
-    assert r["status_code"] == 200
+    assert r['status_code'] == 200
 
     flow_id = send_flow(flow_yml, pod_dir)['flow_id']
 
@@ -56,12 +56,12 @@ def test_flow():
     assert len(texts_matched['search']['docs'][0]['matches']) == 10
 
     r = call_api(method='get', url=f'http://localhost:8000/v1/flow/{flow_id}')
-    assert r["status_code"] == 200
+    assert r['status_code'] == 200
 
     r = call_api(
         method='delete', url=f'http://localhost:8000/v1/flow?flow_id={flow_id}'
     )
-    assert r["status_code"] == 200
+    assert r['status_code'] == 200
     
     stop_docker_compose(compose_yml)
 
