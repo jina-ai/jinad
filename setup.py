@@ -17,13 +17,11 @@ try:
 except FileNotFoundError:
     _long_description = ''
 
-# set JINAVER environment variable (defaults to jina-core master branch)
-# export JINAVER=jina (from official pypi)
-# export JINAVER=jina@git+https://github.com/jina-ai/jina.git (from jina master branch)
-# export JINAVER=jina@git+https://github.com/jina-ai/jina.git@my-branch (from jina my-branch)
-jinaver = os.environ.get('JINAVER', 'jina@git+https://github.com/jina-ai/jina.git')
-install_requires = [jinaver, 'fastapi', 'uvicorn', 'pydantic', 'python-multipart', 'requests']
+install_requires = ['fastapi', 'uvicorn', 'pydantic', 'python-multipart', 'requests']
 extras_require = {'all': ['flaky', 'pytest', 'pytest-asyncio', 'pytest-cov']}
+jinaver = os.environ.get('JINAVER', 'jina')
+if jinaver:
+    install_requires.append(jinaver)
 
 setup(
     name=pkg_name,
