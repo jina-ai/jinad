@@ -12,43 +12,43 @@ from tests.helpers import (
 )
 
 
-DIRECTORY = Path("tests/integration/distributed/test_simple_hub_pods/")
-COMPOSE_YAML = DIRECTORY / "docker-compose.yml"
-FLOW_YAML = DIRECTORY / "flow.yml"
-EXPECTED_TEXT = "text:hey, dude"
+directory = Path('tests/integration/distributed/test_simple_hub_pods/')
+compose_yml = directory / 'docker-compose.yml'
+flow_yml = directory / 'flow.yml'
+expected_text = 'text:hey, dude'
 
 
-@pytest.mark.skip(reason="not working")
+@pytest.mark.skip(reason='not working')
 def test_simple_hub_pods():
-    if Path.cwd().name != "jinad":
-        sys.exit("test_integration.py should only be run from the jinad base directory")
+    if Path.cwd().name != 'jinad':
+        sys.exit('test_integration.py should only be run from the jinad base directory')
 
-    start_docker_compose(COMPOSE_YAML)
+    start_docker_compose(compose_yml)
 
     time.sleep(10)
 
-    FLOW_ID = send_flow(FLOW_YAML)["flow_id"]
+    flow_id = send_flow(flow_yml)['flow_id']
 
-    print(f"Successfully started the flow: {FLOW_ID}")
+    print(f'Successfully started the flow: {flow_id}')
 
-    RESPONSE = call_api(
-        method="post",
-        url="http://0.0.0.0:45678/api/search",
-        payload={"top_k": 10, "data": [EXPECTED_TEXT]},
+    response = call_api(
+        method='post',
+        url='http://0.0.0.0:45678/api/search',
+        payload={'top_k': 10, 'data': [expected_text]},
     )
 
-    print(f"Response is: {RESPONSE}")
+    print(f'Response is: {response}')
 
-    TEXT_MATCHED = get_results(query=EXPECTED_TEXT)["search"]["docs"][0]["text"]
+    text_matched = get_results(query=expected_text)['search']['docs'][0]['text']
 
-    print(f"Returned document has the text: {TEXT_MATCHED}")
+    print(f'Returned document has the text: {text_matched}')
 
-    r = call_api(method="get", url=f"http://0.0.0.0:8000/v1/flow/{FLOW_ID}")
-    assert r["status_code"] == 200
+    r = call_api(method='get', url=f'http://0.0.0.0:8000/v1/flow/{flow_id}')
+    assert r['status_code'] == 200
 
-    r = call_api(method="delete", url=f"http://0.0.0.0:8000/v1/flow?flow_id={FLOW_ID}")
-    assert r["status_code"] == 200
+    r = call_api(method='delete', url=f'http://0.0.0.0:8000/v1/flow?flow_id={flow_id}')
+    assert r['status_code'] == 200
 
-    stop_docker_compose(COMPOSE_YAML)
+    stop_docker_compose(compose_yml)
 
-    assert EXPECTED_TEXT == TEXT_MATCHED
+    assert expected_text == text_matched
