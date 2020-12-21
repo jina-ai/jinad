@@ -36,7 +36,7 @@ def test_index_query():
         payload={'top_k': 10, 'data': ['text:hey, dude']},
     )['index']['docs'][0]['text']
 
-    print(f'Indexed document has the text: {text_indexed}')
+    assert text_indexed == 'text:hey, dude'
 
     r = call_api(method='get', url=f'http://localhost:8000/v1/flow/{flow_id}')
     assert r['status_code'] == 200
@@ -54,7 +54,7 @@ def test_index_query():
         'docs'
     ][0]['matches'][0]['text']
 
-    print(f'document matched has the text: {text_matched}')
+    assert text_matched == 'text:hey, dude'
 
     r = call_api(method='get', url=f'http://localhost:8000/v1/flow/{flow_id}')
     assert r['status_code'] == 200
