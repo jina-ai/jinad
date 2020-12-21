@@ -21,7 +21,7 @@ An easier way to build neural search in the cloud
 ---
 **Jina Docs**:      https://docs.jina.ai/
 
-**JinaD API Docs**: https://api.jina.ai/jinad/index.html
+**JinaD API Docs**: https://api.jina.ai/jinad
 
 ---
 
