@@ -15,3 +15,8 @@ pods:
     read_only: False
     host: $JINA_INDEXER_HOST
     port_expose: 8000
+  slice:
+    # for now all the uploaded files are stored in the same folder, so no subpaths allowed in remote
+    uses: slice.yml
+    host: $JINA_INDEXER_HOST
+    port_expose: 8000
