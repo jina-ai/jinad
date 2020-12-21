@@ -4,7 +4,7 @@ from typing import List, Union
 
 from fastapi import status, APIRouter, Body, Response, File, UploadFile
 from jina.parser import set_client_cli_parser
-from jina.helper import get_parsed_args
+from jina.helper import ArgNamespace
 from jina.logging import JinaLogger
 from jina.clients import Client
 
@@ -207,7 +207,7 @@ async def _ping(
     Note: Make sure Flow is running
     """
     kwargs = {'port_expose': port, 'host': host}
-    _, args, _ = get_parsed_args(kwargs, set_client_cli_parser())
+    _, args, _ = ArgNamespace.get_parsed_args(kwargs, set_client_cli_parser())
     client = Client(args)
     try:
         client.index(input_fn=['abc'])
