@@ -20,6 +20,7 @@ An easier way to build neural search in the cloud
 
 ---
 **Jina Docs**:      https://docs.jina.ai/
+
 **JinaD API Docs**: https://api.jina.ai/jinad/index.html
 
 ---
@@ -41,15 +42,15 @@ docker run -p 8000:8000 jinaai/jinad
 ##### Systemd:
 <!-- TODO: Move this link to api.jina.ai -->
 
-> Debian / Ubuntu:
-> ```bash
-> curl -L https://raw.githubusercontent.com/jina-ai/jinad/main/scripts/deb-systemd.sh | bash
-> ```
+Debian / Ubuntu:
+```bash
+curl -L https://raw.githubusercontent.com/jina-ai/jinad/main/scripts/deb-systemd.sh | bash
+```
 
-> RPM:
-> ```bash
-> to be added
-> ```
+RPM:
+```bash
+to be added
+```
 
 
 ## Use Cases:
