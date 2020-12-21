@@ -59,13 +59,13 @@ jobs:
       - name: redoc-cli-jinad
         uses: seeebiii/redoc-cli-github-action@v10
         with:
-          args: 'bundle schema.json -o devel.html'
+          args: 'bundle schema.json -o index.html'
       - name: push-to-api-repo
         run: |
           cd api && mkdir -p jinad && cd jinad
-          cp ../../devel.html .
-          cp devel.html ${{env.JINAD_VERSION}}.html
-          cp devel.html ${{env.JINAD_VERSION}}-devel.html
+          cp ../../index.html .
+          cp index.html ${{env.JINAD_VERSION}}.html
+          cp index.html ${{env.JINAD_VERSION}}-devel.html
           git config --local user.email "dev-bot@jina.ai"
           git config --local user.name "Jina Dev Bot"
-          git add devel.html ${{env.JINAD_VERSION}}.html ${{env.JINAD_VERSION}}-devel.html && git commit -m "jinad update ${{env.JINAD_VERSION}} due to ${{github.event_name}} on ${{github.repository}}" && git push
+          git add index.html ${{env.JINAD_VERSION}}.html ${{env.JINAD_VERSION}}-devel.html && git commit -m "jinad update ${{env.JINAD_VERSION}} due to ${{github.event_name}} on ${{github.repository}}" && git push
