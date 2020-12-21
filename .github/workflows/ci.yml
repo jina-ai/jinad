@@ -67,6 +67,13 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install '.[all]' --no-cache-dir
+      - name: Build jina test-pip for hubpod
+        run: |
+          docker build -f Dockerfiles/pip.Dockerfile -t jinaai/jinad:test-pip .
+      - name: Build pod image
+        run: |
+          docker build -f tests/integration/distributed/hub_mwu/Dockerfile tests/integration/distributed/hub_mwu -t hubpod:test
+        timeout-minutes: 5
       - name: Test with pytest
         run: |
           pytest --force-flaky --min-passes 1 --max-runs 5 --cov=jinad --cov-report=xml -v tests/integration
