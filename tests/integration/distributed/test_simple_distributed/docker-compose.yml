@@ -4,7 +4,7 @@ services:
     image: test_simple_distributed
     build:
       context: .
-      dockerfile: tests/integration/distributed/test_simple_distributed/Dockerfile
+      dockerfile: tests/integration/distributed/Dockerfiles/Dockerfile
     ports:
       - "8000:8000"
       - "45678:45678"

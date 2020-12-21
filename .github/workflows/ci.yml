@@ -67,6 +67,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install '.[all]' --no-cache-dir
+      - name: Build jina test-pip for hubpod
+        run: |
+          docker build -f Dockerfiles/pip.Dockerfile -t jinaai/jinad:test-pip .
       - name: Build pod image
         run: |
           docker build -f tests/integration/distributed/hub_mwu/Dockerfile tests/integration/distributed/hub_mwu -t hubpod:test
