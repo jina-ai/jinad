@@ -1,36 +1,61 @@
-# jinad - The Daemon to manage Jina remotely
-
+<p align="center">
+<img src="https://github.com/jina-ai/jina/blob/master/.github/logo-only.gif?raw=true" alt="Jina banner" width="200px">
+</p>
+<p align="center">
+An easier way to build neural search in the cloud
+</p>
 <p align="center">
 <a href="#license"><img src="https://github.com/jina-ai/jinad/blob/main/.github/badges/license-badge.svg?raw=true" alt="Jina" title="Jinas is licensed under Apache-2.0"></a>
-<a href="https://pypi.org/project/jina/"><img src="https://github.com/jina-ai/jinad/blob/main/.github/badges/python-badge.svg?raw=true" alt="Python 3.7 3.8" title="Jinas supports Python 3.7 and above"></a>
-<a href="https://pypi.org/project/jina/"><img src="https://img.shields.io/pypi/v/jinad?color=%23099cec&amp;label=PyPI&amp;logo=pypi&amp;logoColor=white" alt="PyPI"></a>
-<a href="https://hub.docker.com/r/jinaai/jina/tags"><img src="https://img.shields.io/docker/v/jinaai/jinad?color=%23099cec&amp;label=Docker&amp;logo=docker&amp;logoColor=white&amp;sort=semver" alt="Docker Image Version (latest semver)"></a>
+<a href="https://pypi.org/project/jinad/"><img src="https://github.com/jina-ai/jinad/blob/main/.github/badges/python-badge.svg?raw=true" alt="Python 3.7 3.8" title="Jinad supports Python 3.7 and above"></a>
+<a href="https://pypi.org/project/jinad/"><img src="https://img.shields.io/pypi/v/jinad?color=%23099cec&amp;label=PyPI&amp;logo=pypi&amp;logoColor=white" alt="PyPI"></a>
+<a href="https://hub.docker.com/r/jinaai/jinad/tags"><img src="https://img.shields.io/docker/v/jinaai/jinad?color=%23099cec&amp;label=Docker&amp;logo=docker&amp;logoColor=white&amp;sort=semver" alt="Docker Image Version (latest semver)"></a>
 <a href="https://github.com/jina-ai/jinad/actions?query=workflow%3ACI"><img src="https://github.com/jina-ai/jinad/workflows/CI/badge.svg" alt="CI"></a>
 <a href="https://github.com/jina-ai/jinad/actions?query=workflow%3ACD"><img src="https://github.com/jina-ai/jinad/workflows/CD/badge.svg?branch=main" alt="CD"></a>
 <a href="https://codecov.io/gh/jina-ai/jinad"><img src="https://codecov.io/gh/jina-ai/jinad/branch/main/graph/badge.svg" alt="codecov"></a>
 </p>
 
-## Set up jinad on remote machines
+# jinad - The Daemon to manage Jina remotely
 
-The easist way of running `jinad` is to use the docker image,
+> jinad is a REST + Websockets based server to allow remote workflows in [Jina](https://github.com/jina-ai/jina). It is built using [FastAPI](https://fastapi.tiangolo.com/) and deployed using [Uvicorn](https://www.uvicorn.org/).
+
+---
+**Jina Docs**:      https://docs.jina.ai/
+**JinaD API Docs**: https://api.jina.ai/jinad/index.html
+
+---
+
+## Set up:
+##### Pypi:
+On Linux/macOS with Python 3.7/3.8:
 
 ```bash
-sudo docker run --rm -d --network host jinaai/jinad
+pip install -U jinad && jinad
 ```
 
-You can verify whether it running properly by
+##### Docker Container:
 
 ```bash
-export JINAD_IP=1.2.3.4
-export JINAD_PORT=8000
-curl -s -o /dev/null -w "%{http_code}"  http://$JINAD_IP:$JINAD_PORT/v1/alive
+docker run -p 8000:8000 jinaai/jinad
 ```
 
-> `1.2.3.4` is the public ip of your instance. By default, jinad is listening to the port `8000`
+##### Systemd:
+<!-- TODO: Move this link to api.jina.ai -->
+
+> Debian / Ubuntu:
+> ```bash
+> curl -L https://raw.githubusercontent.com/jina-ai/jinad/main/scripts/deb-systemd.sh | bash
+> ```
+
+> RPM:
+> ```bash
+> to be added
+> ```
 
 
-## Use Case 1: Create Pods on remote machines
-After having `jinad` running on the remote machine, you can directly create and use the remote pods from your local machine
+## Use Cases:
+Start `jinad` on a remote machine - `1.2.3.4:8000`
+
+### 1: Create Remote Pod in a Flow
 
 ```python
 f = (Flow()
@@ -41,16 +66,32 @@ with f:
 ```
 
 
-## Use Case 2: Create Pods on remote using Jina CLI
+### 2: Create Remote Pod using Jina CLI
 
-
-```
+```bash
 jina pod --host 1.2.3.4 --port-expose 8000 --uses _logforward
 ```
 
-> Make sure `jinad` is running in `pod` context
+### 3: Create a Remote Flow
 
-> we need to pass a valid `role` for this (pydantic issue to be fixed)
+```bash
+curl -s --request PUT "http://1.2.3.4:8000/v1/flow/yaml" -H  "accept: application/json" -H  "Content-Type: multipart/form-data" -F "uses_files=@helloworld.encoder.yml" -F "uses_files=@helloworld.indexer.yml" -F "pymodules_files=@components.py" -F "yamlspec=@helloworld.flow.index.yml"
+```
+
+
+<!--
+TODO(Deepankar): move this to DEBUG.MD
+You can verify whether it running properly by
+
+```bash
+export JINAD_IP=1.2.3.4
+export JINAD_PORT=8000
+curl -s -o /dev/null -w "%{http_code}"  http://$JINAD_IP:$JINAD_PORT/v1/alive
+```
+
+> `1.2.3.4` is the public ip of your instance. By default, jinad is listening to the port `8000`
+
+ -->
 
 
 <!--## Use Case 3: Create Peas on remote using Jina CLI
@@ -63,13 +104,6 @@ jina pea --host 1.2.3.4 --port-expose 8000 --role SINGLETON
 
 > we need to pass a valid `role` for this (pydantic issue to be fixed)-->
 
-## Use Case 3: Create a Flow on remote
-
-```
-curl -s --request PUT "http://1.2.3.4:8000/v1/flow/yaml" -H  "accept: application/json" -H  "Content-Type: multipart/form-data" -F "uses_files=@helloworld.encoder.yml" -F "uses_files=@helloworld.indexer.yml" -F "pymodules_files=@components.py" -F "yamlspec=@helloworld.flow.index.yml"
-```
-
-> Make sure `jinad` is running in `flow` context
 
 
 
@@ -82,7 +116,7 @@ ssh -i your.pem ubuntu@ec2-1-2-3-4.us-east-2.compute.amazonaws.com
 ```
 
 
-2. Install the required packages
+1. Install the required packages
 
 ```bash
 sudo apt-get update
