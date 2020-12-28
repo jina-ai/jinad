@@ -1,0 +1,19 @@
+version: "3.3"
+services:
+  encoder:
+    image: test_simple_local_remote
+    build:
+      context: .
+      dockerfile: tests/integration/distributed/Dockerfiles/Dockerfile
+    expose:
+      - 8000
+      - 10000-60000
+    env_file:
+      - tests/integration/distributed/test_simple_local_remote/.env
+  indexer:
+    image: test_simple_local_remote
+    expose:
+      - 8000
+      - 10000-60000
+    env_file:
+      - tests/integration/distributed/test_simple_local_remote/.env
