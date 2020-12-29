@@ -5,15 +5,30 @@ services:
     build:
       context: .
       dockerfile: tests/integration/distributed/Dockerfiles/Dockerfile
+    # ports:
+    #     - "8001:8000"
     expose:
       - 8000
       - 10000-60000
     env_file:
       - tests/integration/distributed/test_simple_local_remote/.env
+    networks:
+      static-network:
+        ipv4_address: 172.20.128.2
   indexer:
     image: test_simple_local_remote
+    # ports:
+    #     - "8002:8000"
     expose:
       - 8000
       - 10000-60000
     env_file:
       - tests/integration/distributed/test_simple_local_remote/.env
+    networks:
+      static-network:
+        ipv4_address: 172.20.128.3
+networks:
+  static-network:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

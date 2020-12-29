@@ -1,7 +1,7 @@
 !Flow
 with:
   read_only: true
-  # rest_api: true
+  rest_api: true
 pods:
   encoder:
     # for now all the uploaded files are stored in the same folder, so no subpaths allowed in remote
