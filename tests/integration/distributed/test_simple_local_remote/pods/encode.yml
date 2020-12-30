@@ -2,4 +2,4 @@
 with:
   {}
 metas:
-  py_modules: dummy-encoder.py
+  py_modules: tests/integration/distributed/test_simple_local_remote/pods/dummy-encoder.py
