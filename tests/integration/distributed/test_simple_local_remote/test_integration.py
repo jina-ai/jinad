@@ -6,7 +6,6 @@ from jina.flow import Flow
 cur_dir = os.path.dirname(os.path.abspath(__file__))
 compose_yml = os.path.join(cur_dir, 'docker-compose.yml')
 flow_yml = os.path.join(cur_dir, 'flow.yml')
-pod_dir = os.path.join(cur_dir, 'pods')
 
 
 @pytest.mark.parametrize('docker_compose', [compose_yml], indirect=['docker_compose'])
