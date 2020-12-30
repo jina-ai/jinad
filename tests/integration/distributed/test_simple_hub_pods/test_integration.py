@@ -1,35 +1,23 @@
-from pathlib import Path
+import os
 import pytest
-import sys
-import time
 
-from tests.helpers import (
-    start_docker_compose,
-    stop_docker_compose,
+from tests.integration.distributed.helpers import (
     send_flow,
     call_api,
     get_results,
 )
 
-
-directory = Path('tests/integration/distributed/test_simple_hub_pods/')
-compose_yml = directory / 'docker-compose.yml'
-flow_yml = directory / 'flow.yml'
-expected_text = 'text:hey, dude'
+cur_dir = os.path.dirname(os.path.abspath(__file__))
+compose_yml = os.path.join(cur_dir, 'docker-compose.yml')
+flow_yml = os.path.join(cur_dir, 'flow.yml')
+pod_dir = os.path.join(cur_dir, 'pods')
 
 
 @pytest.mark.skip(reason='not working')
-def test_simple_hub_pods():
-    if Path.cwd().name != 'jinad':
-        sys.exit('test_integration.py should only be run from the jinad base directory')
-
-    start_docker_compose(compose_yml)
-
-    time.sleep(10)
-
+@pytest.mark.parametrize('docker_compose', [compose_yml], indirect=['docker_compose'])
+def test_simple_hub_pods(docker_compose):
+    expected_text = 'text:hey, dude'
     flow_id = send_flow(flow_yml)['flow_id']
-
-    print(f'Successfully started the flow: {flow_id}')
 
     response = call_api(
         method='post',
@@ -48,7 +36,5 @@ def test_simple_hub_pods():
 
     r = call_api(method='delete', url=f'http://0.0.0.0:8000/v1/flow?flow_id={flow_id}')
     assert r['status_code'] == 200
-
-    stop_docker_compose(compose_yml)
 
     assert expected_text == text_matched

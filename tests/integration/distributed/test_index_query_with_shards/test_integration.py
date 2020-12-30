@@ -1,35 +1,22 @@
-from pathlib import Path
-import pytest
-import sys
-import time
+import os
 
-from tests.helpers import (
-    start_docker_compose,
-    stop_docker_compose,
+import pytest
+
+from ..helpers import (
     send_flow,
     call_api,
     get_results,
 )
 
-directory = Path('tests/integration/distributed/test_index_query_with_shards/')
-compose_yml = directory / 'docker-compose.yml'
-flow_yml = directory / 'flow.yml'
-pod_dir = directory / 'pods'
+cur_dir = os.path.dirname(os.path.abspath(__file__))
+compose_yml = os.path.join(cur_dir, 'docker-compose.yml')
+flow_yml = os.path.join(cur_dir, 'flow.yml')
+pod_dir = os.path.join(cur_dir, 'pods')
 
 
-def test_flow():
-    if Path.cwd().name != 'jinad':
-        sys.exit(
-            'test_index_query_with_shards.py should only be run from the jinad base directory'
-        )
-
-    start_docker_compose(compose_yml)
-
-    time.sleep(10)
-
+@pytest.mark.parametrize('docker_compose', [compose_yml], indirect=['docker_compose'])
+def test_flow(docker_compose):
     flow_id = send_flow(flow_yml, pod_dir)['flow_id']
-
-    print(f'Successfully started the flow: {flow_id}. Lets index some data')
 
     for x in range(100):
         text = 'text:hey, dude ' + str(x)
@@ -51,8 +38,6 @@ def test_flow():
 
     flow_id = send_flow(flow_yml, pod_dir)['flow_id']
 
-    print(f'Successfully started the flow: {flow_id}. Lets send some query')
-
     texts_matched = get_results(query='anything will match the same')
 
     assert len(texts_matched['search']['docs'][0]['matches']) == 10
@@ -64,5 +49,3 @@ def test_flow():
         method='delete', url=f'http://localhost:8000/v1/flow?flow_id={flow_id}'
     )
     assert r['status_code'] == 200
-
-    stop_docker_compose(compose_yml)
