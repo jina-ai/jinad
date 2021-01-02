@@ -15,7 +15,7 @@ def mock_key_error(**kwargs):
 
 
 @pytest.mark.asyncio
-async def test_create_via_flow_success(monkeypatch):
+async def test_create_success(monkeypatch):
     monkeypatch.setattr(pod.pod_store, '_create', lambda **args: _temp_id)
     monkeypatch.setattr(pod, 'pod_to_namespace', lambda **args: {})
     response = await pod._create_via_flow({})
@@ -25,7 +25,7 @@ async def test_create_via_flow_success(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_create_via_flow_pod_start_exception(monkeypatch):
+async def test_create_pod_start_exception(monkeypatch):
     monkeypatch.setattr(pod.pod_store, '_create', mock_pod_start_exception)
     monkeypatch.setattr(pod, 'pod_to_namespace', lambda **args: {})
     with pytest.raises(pod.HTTPException) as response:

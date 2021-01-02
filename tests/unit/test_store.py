@@ -9,14 +9,14 @@ from jina.enums import PodRoleType
 from jina.peapods.pods import BasePod
 from jina.parsers import set_pea_parser, set_pod_parser
 
-from jinad.models import PodModel
+from jinad.models import SinglePodModel
 from jinad.store import InMemoryPeaStore, InMemoryPodStore, InMemoryFlowStore
 
 cur_dir = Path(__file__).parent
 
 
 def pod_list():
-    return [PodModel(pod_role=PodRoleType.POD)]
+    return [SinglePodModel(pod_role=PodRoleType.POD)]
 
 
 def flow_file_str():
