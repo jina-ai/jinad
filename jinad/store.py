@@ -9,11 +9,11 @@ from jina.flow import Flow
 from jina.jaml import JAML
 from jina.helper import colored, get_random_identity
 from jina.logging import JinaLogger
-from jina.peapods import Runtime, Pod
+from jina.peapods import Pea, Pod
 
 from jinad.models.pod import PodModel
 from jinad.helper import create_meta_files_from_upload, delete_meta_files_from_upload
-from jinad.excepts import PeaFailToStart, FlowYamlParseException, FlowCreationException, \
+from jinad.excepts import FlowYamlParseException, FlowCreationException, \
     FlowStartException, PodStartException, PeaStartException, FlowBadInputException
 
 
@@ -99,11 +99,6 @@ class InMemoryFlowStore(InMemoryStore):
             flow.args.log_id = flow.args.identity if 'identity' in flow.args else get_random_identity()
             flow_id = uuid.UUID(flow.args.log_id)
             flow = self._start(context=flow)
-        except PeaFailToStart as e:
-            self.logger.critical(f'Flow couldn\'t get started - Invalid Pod {repr(e)} ')
-            self.logger.critical('Possible causes - invalid/not uploaded pod yamls & pymodules')
-            # TODO: Send correct error message
-            raise FlowStartException(repr(e))
         except Exception as e:
             self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
             raise FlowStartException(repr(e))
@@ -196,7 +191,7 @@ class InMemoryPeaStore(InMemoryStore):
         try:
             pea_id = uuid.UUID(pea_arguments.log_id) if isinstance(pea_arguments, Namespace) \
                 else uuid.UUID(pea_arguments['log_id'])
-            pea = Runtime(args=pea_arguments, allow_remote=False)
+            pea = Pea(args=pea_arguments, allow_remote=False)
             pea = self._start(context=pea)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pea: {repr(e)}')

@@ -3,7 +3,7 @@ import uuid
 from typing import List, Union
 
 from fastapi import status, APIRouter, Body, Response, File, UploadFile
-from jina.parser import set_client_cli_parser
+from jina.parsers import set_client_cli_parser
 from jina.helper import ArgNamespace
 from jina.logging import JinaLogger
 from jina.clients import Client
