@@ -1,11 +1,12 @@
 import os
 import argparse
-from typing import Dict, Union
+from typing import Dict, List, Union
 
+from jina import __default_host__
 from jina.helper import get_random_identity
 from fastapi import UploadFile
 
-from jinad.models import PeaModel, PodModel
+from jinad.models import PeaModel, SinglePodModel, ParallelPodModel
 
 
 def get_enum_defaults(parser: argparse.ArgumentParser):
@@ -40,16 +41,48 @@ def handle_log_id(args: Dict):
     args['log_id'] = args['identity'] if 'identity' in args else get_random_identity()
 
 
-def pod_to_namespace(args: Union[PodModel, Dict]):
+def handle_remote_host(args: Dict):
+    if 'host' in args:
+        args['host'] = __default_host__
+
+
+def pod_to_namespace(args: Union[SinglePodModel, ParallelPodModel]):
     from jina.parsers import set_pod_parser
     parser = set_pod_parser()
 
-    if isinstance(args, PodModel):
+    if isinstance(args, ParallelPodModel):
+        pod_args = {}
         args = args.dict()
+        for pea_type, pea_args in args.items():
+            # this is for pea_type: head & tail when None (pod with parallel = 1)
+            if pea_args is None:
+                pod_args[pea_type] = None
 
-    if isinstance(args, Dict):
+            # this is for pea_type: head & tail when not None (pod with parallel > 1)
+            if isinstance(pea_args, Dict):
+                pea_args = handle_enums(args=pea_args,
+                                        parser=parser)
+                handle_log_id(args=pea_args)
+                handle_remote_host(args=pea_args)
+                pod_args[pea_type] = argparse.Namespace(**pea_args)
+
+            # this is for pea_type: peas (multiple entries)
+            if isinstance(pea_args, List):
+                pod_args[pea_type] = []
+                for current_pea_arg in pea_args:
+                    current_pea_arg = handle_enums(args=current_pea_arg,
+                                                   parser=parser)
+                    handle_log_id(args=current_pea_arg)
+                    handle_remote_host(args=current_pea_arg)
+                    pod_args[pea_type].append(argparse.Namespace(**current_pea_arg))
+
+        return pod_args
+
+    if isinstance(args, SinglePodModel):
+        args = args.dict()
         pod_args = handle_enums(args=args, parser=parser)
         handle_log_id(args=pod_args)
+        handle_remote_host(args=pod_args)
         return argparse.Namespace(**pod_args)
 
 

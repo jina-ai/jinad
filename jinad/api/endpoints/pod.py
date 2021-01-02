@@ -5,7 +5,7 @@ from fastapi import status, APIRouter, File, UploadFile
 from jina.logging import JinaLogger
 
 from jinad.store import pod_store
-from jinad.models import PodModel
+from jinad.models import SinglePodModel, ParallelPodModel
 from jinad.excepts import HTTPException, PodStartException
 from jinad.helper import pod_to_namespace, create_meta_files_from_upload
 
@@ -43,20 +43,12 @@ async def _upload(
     path='/pod',
     summary='Create a Pod via Flow or CLI',
 )
-async def _create_via_flow(
-    pod_arguments: Union[PodModel, Dict]
+async def _create(
+    pod_arguments: Union[SinglePodModel, ParallelPodModel]
 ):
     """This is used to create a remote Pod which gets triggered either in a Flow context or via CLI
 
-    Args: pod_arguments (Dict or PodModel)
-
-        {
-            'head': PodModel,
-            'tail': PodModel,
-            'peas': [PodModel]
-        }
-
-
+    Args: pod_arguments (SinglePodModel or RemotePodModel)
     """
     pod_arguments = pod_to_namespace(args=pod_arguments)
 
@@ -65,7 +57,7 @@ async def _create_via_flow(
             pod_id = pod_store._create(pod_arguments=pod_arguments)
         except PodStartException as e:
             raise HTTPException(status_code=404,
-                                detail=f'Pod couldn\'t get started:  {repr(e)}')
+                                detail=f'Pod couldn\'t get started: {repr(e)}')
         except Exception as e:
             logger.error(f'Got an error while creating a pod {repr(e)}')
             raise HTTPException(status_code=404,

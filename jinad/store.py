@@ -5,13 +5,14 @@ from typing import List, Dict, Union
 from argparse import Namespace
 
 from fastapi import UploadFile
+from jina import __default_host__
 from jina.flow import Flow
 from jina.jaml import JAML
 from jina.helper import colored, get_random_identity
 from jina.logging import JinaLogger
 from jina.peapods import Pea, Pod
 
-from jinad.models import PodModel
+from jinad.models import SinglePodModel
 from jinad.helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from jinad.excepts import FlowYamlParseException, FlowCreationException, \
     FlowStartException, PodStartException, PeaStartException, FlowBadInputException
@@ -66,7 +67,7 @@ class InMemoryStore:
 class InMemoryFlowStore(InMemoryStore):
 
     def _create(self,
-                config: Union[str, SpooledTemporaryFile, List[PodModel]] = None,
+                config: Union[str, SpooledTemporaryFile, List[SinglePodModel]] = None,
                 files: List[UploadFile] = None):
         """ Creates Flow using List[PodModel] or yaml spec """
         # This makes sure `uses` & `py_modules` are created locally in `cwd`
@@ -109,11 +110,10 @@ class InMemoryFlowStore(InMemoryStore):
         return flow_id, flow.host, flow.port_expose
 
     def _build_with_pods(self,
-                         pod_args: List[PodModel]):
+                         pod_args: List[SinglePodModel]):
         """ Since we rely on PodModel, this can accept all params that a Pod can accept """
         flow = Flow()
         for current_pod_args in pod_args:
-            self.logger.warning(current_pod_args)
             _current_pod_args = current_pod_args.dict()
             _current_pod_args.pop('log_config')
             flow = flow.add(**_current_pod_args)
@@ -128,8 +128,7 @@ class InMemoryFlowStore(InMemoryStore):
 
         if 'flow' in self._store[flow_id]:
             flow = self._store[flow_id]['flow']
-
-        return flow.host, flow.port_expose, flow.yaml_spec
+            return flow.host, flow.port_expose, flow.yaml_spec
 
     def _delete(self, flow_id: uuid.UUID):
         """ Closes a Flow context & deletes from store """
@@ -191,7 +190,6 @@ class InMemoryPeaStore(InMemoryStore):
         try:
             pea_id = uuid.UUID(pea_arguments.log_id) if isinstance(pea_arguments, Namespace) \
                 else uuid.UUID(pea_arguments['log_id'])
-            self.logger.warning(pea_arguments)
             pea = Pea(pea_arguments)
             pea = self._start(context=pea)
         except Exception as e:

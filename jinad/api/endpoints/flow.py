@@ -9,7 +9,7 @@ from jina.logging import JinaLogger
 from jina.clients import Client
 
 from jinad.store import flow_store
-from jinad.models import PodModel
+from jinad.models import SinglePodModel
 from jinad.excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException
 
@@ -22,8 +22,8 @@ router = APIRouter()
     summary='Build & start a Flow using Pods',
 )
 async def _create_from_pods(
-    pods: Union[List[PodModel]] = Body(...,
-                                       example=json.loads(PodModel().json()))
+    pods: Union[List[SinglePodModel]] = Body(...,
+                                             example=json.loads(SinglePodModel().json()))
 ):
     """
     Build a Flow using a list of `PodModel`
