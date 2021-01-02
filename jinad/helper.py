@@ -5,8 +5,7 @@ from typing import Dict
 from jina.helper import get_random_identity
 from fastapi import UploadFile
 
-from jinad.models.pea import PeaModel
-from jinad.models.pod import PodModel
+from jinad.models import PeaModel, PodModel
 
 
 def get_enum_defaults(parser: argparse.ArgumentParser):
@@ -43,7 +42,7 @@ def handle_log_id(args: Dict):
 
 def flowpod_to_namespace(args: Dict):
     # TODO: combine all 3 to_namespace methods
-    from jina.parser import set_pod_parser
+    from jina.parsers import set_pod_parser
     parser = set_pod_parser()
     pod_args = {}
 
@@ -72,7 +71,7 @@ def flowpod_to_namespace(args: Dict):
 
 
 def basepod_to_namespace(args: PodModel):
-    from jina.parser import set_pod_parser
+    from jina.parsers import set_pod_parser
     parser = set_pod_parser()
 
     if isinstance(args, PodModel):
@@ -83,7 +82,7 @@ def basepod_to_namespace(args: PodModel):
 
 
 def basepea_to_namespace(args: PeaModel):
-    from jina.parser import set_pea_parser
+    from jina.parsers import set_pea_parser
     parser = set_pea_parser()
 
     if isinstance(args, PeaModel):

@@ -11,7 +11,7 @@ from jina.helper import colored, get_random_identity
 from jina.logging import JinaLogger
 from jina.peapods import Pea, Pod
 
-from jinad.models.pod import PodModel
+from jinad.models import PodModel
 from jinad.helper import create_meta_files_from_upload, delete_meta_files_from_upload
 from jinad.excepts import FlowYamlParseException, FlowCreationException, \
     FlowStartException, PodStartException, PeaStartException, FlowBadInputException
@@ -85,10 +85,9 @@ class InMemoryFlowStore(InMemoryStore):
                 raise FlowYamlParseException
         elif isinstance(config, list):
             try:
-                flow = Flow()
-                # it is strange to build from a given flow, it seems like a lazy construction pattern could be used?
-                flow = self._build_with_pods(flow=flow,
-                                             pod_args=config)
+                flow = self._build_with_pods(pod_args=config)
+                with flow:
+                    pass
             except Exception as e:
                 self.logger.error(f'Got error while creating flows via pods: {repr(e)}')
                 raise FlowCreationException
@@ -110,10 +109,11 @@ class InMemoryFlowStore(InMemoryStore):
         return flow_id, flow.host, flow.port_expose
 
     def _build_with_pods(self,
-                         flow: Flow,
                          pod_args: List[PodModel]):
         """ Since we rely on PodModel, this can accept all params that a Pod can accept """
+        flow = Flow()
         for current_pod_args in pod_args:
+            self.logger.warning(current_pod_args)
             _current_pod_args = current_pod_args.dict()
             _current_pod_args.pop('log_config')
             flow = flow.add(**_current_pod_args)
@@ -156,7 +156,7 @@ class InMemoryPodStore(InMemoryStore):
             pod_id = uuid.UUID(pod_arguments.log_id) if isinstance(pod_arguments, Namespace) \
                 else uuid.UUID(pod_arguments['peas'][0].log_id)
 
-            pod = Pod(args=pod_arguments, allow_remote=False)
+            pod = Pod(pod_arguments)
             pod = self._start(context=pod)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pod: {repr(e)}')
@@ -191,7 +191,8 @@ class InMemoryPeaStore(InMemoryStore):
         try:
             pea_id = uuid.UUID(pea_arguments.log_id) if isinstance(pea_arguments, Namespace) \
                 else uuid.UUID(pea_arguments['log_id'])
-            pea = Pea(args=pea_arguments, allow_remote=False)
+            self.logger.warning(pea_arguments)
+            pea = Pea(pea_arguments)
             pea = self._start(context=pea)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pea: {repr(e)}')

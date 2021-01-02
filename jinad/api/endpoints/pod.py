@@ -5,7 +5,7 @@ from fastapi import status, APIRouter, File, UploadFile
 from jina.logging import JinaLogger
 
 from jinad.store import pod_store
-from jinad.models.pod import PodModel
+from jinad.models import PodModel
 from jinad.excepts import HTTPException, PodStartException
 from jinad.helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload
 

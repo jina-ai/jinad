@@ -9,7 +9,7 @@ from jina.logging import JinaLogger
 from jina.clients import Client
 
 from jinad.store import flow_store
-from jinad.models.pod import PodModel
+from jinad.models import PodModel
 from jinad.excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException
 

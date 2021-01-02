@@ -5,7 +5,7 @@ from fastapi import status, APIRouter, File, UploadFile
 from jina.logging import JinaLogger
 
 from jinad.store import pea_store
-from jinad.models.pea import PeaModel
+from jinad.models import PeaModel
 from jinad.excepts import HTTPException, PeaStartException
 from jinad.helper import basepea_to_namespace, create_meta_files_from_upload
 

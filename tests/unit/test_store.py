@@ -1,21 +1,22 @@
 from pathlib import Path
+from jina.peapods import Pod
 
 import pytest
 from fastapi import UploadFile
 
-from jina.parser import set_pea_parser, set_pod_parser
-from jina.peapods.runtimes.local import LocalRuntime
-from jina.peapods.pods import BasePod
 from jina.flow import Flow
+from jina.enums import PodRoleType
+from jina.peapods.pods import BasePod
+from jina.parsers import set_pea_parser, set_pod_parser
 
+from jinad.models import PodModel
 from jinad.store import InMemoryPeaStore, InMemoryPodStore, InMemoryFlowStore
-from jinad.helper import PodModel
 
 cur_dir = Path(__file__).parent
 
 
 def pod_list():
-    return [PodModel()]
+    return [PodModel(pod_role=PodRoleType.POD)]
 
 
 def flow_file_str():
