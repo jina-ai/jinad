@@ -40,7 +40,7 @@ async def _upload(
 
 
 @router.put(
-    path='/pod/flow',
+    path='/pod',
     summary='Create a Pod via Flow or CLI',
 )
 async def _create_via_flow(
