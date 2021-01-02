@@ -1,5 +1,5 @@
 import uuid
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from fastapi import status, APIRouter, File, UploadFile
 from jina.logging import JinaLogger
@@ -7,7 +7,7 @@ from jina.logging import JinaLogger
 from jinad.store import pod_store
 from jinad.models import PodModel
 from jinad.excepts import HTTPException, PodStartException
-from jinad.helper import flowpod_to_namespace, basepod_to_namespace, create_meta_files_from_upload
+from jinad.helper import pod_to_namespace, create_meta_files_from_upload
 
 logger = JinaLogger(context='👻 PODAPI')
 router = APIRouter()
@@ -40,47 +40,15 @@ async def _upload(
 
 
 @router.put(
-    path='/pod/cli',
-    summary='Create an independent MutablePod',
-)
-async def _create_independent(
-    pod_arguments: PodModel
-):
-    """
-    This is used to create an independent remote MutablePod which stays out of Flow context
-    """
-    pod_arguments = basepod_to_namespace(args=pod_arguments)
-
-    with pod_store._session():
-        try:
-            pod_id = pod_store._create(pod_arguments=pod_arguments)
-        except PodStartException as e:
-            raise HTTPException(status_code=404,
-                                detail=f'Pod couldn\'t get started:  {repr(e)}')
-        except Exception as e:
-            logger.error(f'Got an error while creating a pod {repr(e)}')
-            raise HTTPException(status_code=404,
-                                detail=f'Something went wrong')
-    return {
-        'status_code': status.HTTP_200_OK,
-        'pod_id': pod_id,
-        'status': 'started'
-    }
-
-
-@router.put(
     path='/pod/flow',
-    summary='Create a MutablePod via Flow',
+    summary='Create a Pod via Flow or CLI',
 )
 async def _create_via_flow(
-    pod_arguments: Dict
+    pod_arguments: Union[PodModel, Dict]
 ):
-    """
-    This is used to create a remote MutablePod which gets triggered by a Flow context
+    """This is used to create a remote Pod which gets triggered either in a Flow context or via CLI
 
-    > Shouldn't be created with manual trigger
-
-    Args: pod_arguments (Dict)
+    Args: pod_arguments (Dict or PodModel)
 
         {
             'head': PodModel,
@@ -90,7 +58,7 @@ async def _create_via_flow(
 
 
     """
-    pod_arguments = flowpod_to_namespace(args=pod_arguments)
+    pod_arguments = pod_to_namespace(args=pod_arguments)
 
     with pod_store._session():
         try:

@@ -19,7 +19,8 @@ from jinad.excepts import FlowYamlParseException, FlowCreationException, \
 
 class InMemoryStore:
     _store = {}
-    # TODO: Implement fastapi based oauth/bearer security here
+    # TODO(Deepankar): Implement fastapi based oauth/bearer security here
+    # https://github.com/jina-ai/jinad/issues/4
     credentials = 'foo:bar'
     _session_token = None
     logger = JinaLogger(context='🏪 STORE')
@@ -74,7 +75,6 @@ class InMemoryFlowStore(InMemoryStore):
             [create_meta_files_from_upload(current_file) for current_file in files]
 
         # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
-        # I think this needs to be handled by some `FlowBuilder` class, transfrom a yaml_load to a config
         if isinstance(config, str) or isinstance(config, SpooledTemporaryFile):
             yamlspec = config.read().decode() if isinstance(config, SpooledTemporaryFile) else config
             try:

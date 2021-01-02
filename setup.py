@@ -2,8 +2,8 @@ import os
 from setuptools import setup
 from setuptools import find_packages
 
+pkg_name = 'jinad'
 try:
-    pkg_name = 'jinad'
     libinfo_py = os.path.join(pkg_name, '__init__.py')
     libinfo_content = open(libinfo_py, 'r', encoding='utf8').readlines()
     version_line = [l.strip() for l in libinfo_content if l.startswith('__version__')][0]
@@ -17,7 +17,7 @@ try:
 except FileNotFoundError:
     _long_description = ''
 
-install_requires = ['fastapi', 'uvicorn', 'pydantic', 'python-multipart', 'requests']
+install_requires = ['fastapi', 'uvicorn', 'pydantic', 'python-multipart', 'requests', 'websockets']
 extras_require = {'all': ['flaky', 'pytest', 'pytest-asyncio', 'pytest-cov']}
 jinaver = os.environ.get('JINAVER', 'jina')
 if jinaver:

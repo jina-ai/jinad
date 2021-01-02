@@ -7,7 +7,7 @@ from jina.logging import JinaLogger
 from jinad.store import pea_store
 from jinad.models import PeaModel
 from jinad.excepts import HTTPException, PeaStartException
-from jinad.helper import basepea_to_namespace, create_meta_files_from_upload
+from jinad.helper import pea_to_namespace, create_meta_files_from_upload
 
 logger = JinaLogger(context='👻 PEAAPI')
 router = APIRouter()
@@ -47,9 +47,9 @@ async def _create(
     pea_arguments: PeaModel
 ):
     """
-    Used to create a Pea on remote
+    Used to create a Remote Pea
     """
-    pea_arguments = basepea_to_namespace(args=pea_arguments)
+    pea_arguments = pea_to_namespace(args=pea_arguments)
 
     with pea_store._session():
         try:

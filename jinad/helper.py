@@ -1,6 +1,6 @@
-import argparse
 import os
-from typing import Dict
+import argparse
+from typing import Dict, Union
 
 from jina.helper import get_random_identity
 from fastapi import UploadFile
@@ -40,54 +40,28 @@ def handle_log_id(args: Dict):
     args['log_id'] = args['identity'] if 'identity' in args else get_random_identity()
 
 
-def flowpod_to_namespace(args: Dict):
-    # TODO: combine all 3 to_namespace methods
-    from jina.parsers import set_pod_parser
-    parser = set_pod_parser()
-    pod_args = {}
-
-    for pea_type, pea_args in args.items():
-        # this is for pea_type: head & tail when None
-        if pea_args is None:
-            pod_args[pea_type] = None
-
-        # this is for pea_type: head & tail when not None
-        if isinstance(pea_args, dict):
-            pea_args = handle_enums(args=pea_args,
-                                    parser=parser)
-            handle_log_id(args=pea_args)
-            pod_args[pea_type] = argparse.Namespace(**pea_args)
-
-        # this is for pea_type: peas (multiple entries)
-        if isinstance(pea_args, list):
-            pod_args[pea_type] = []
-            for pea_arg in pea_args:
-                pea_arg = handle_enums(args=pea_arg,
-                                       parser=parser)
-                handle_log_id(args=pea_arg)
-                pod_args[pea_type].append(argparse.Namespace(**pea_arg))
-
-    return pod_args
-
-
-def basepod_to_namespace(args: PodModel):
+def pod_to_namespace(args: Union[PodModel, Dict]):
     from jina.parsers import set_pod_parser
     parser = set_pod_parser()
 
     if isinstance(args, PodModel):
-        pod_args = handle_enums(args=args.dict(),
-                                parser=parser)
+        args = args.dict()
+
+    if isinstance(args, Dict):
+        pod_args = handle_enums(args=args, parser=parser)
         handle_log_id(args=pod_args)
         return argparse.Namespace(**pod_args)
 
 
-def basepea_to_namespace(args: PeaModel):
+def pea_to_namespace(args: Union[PeaModel, Dict]):
     from jina.parsers import set_pea_parser
     parser = set_pea_parser()
 
     if isinstance(args, PeaModel):
-        pea_args = handle_enums(args=args.dict(),
-                                parser=parser)
+        args = args.dict()
+
+    if isinstance(args, Dict):
+        pea_args = handle_enums(args=args, parser=parser)
         handle_log_id(args=pea_args)
         return argparse.Namespace(**pea_args)
 
