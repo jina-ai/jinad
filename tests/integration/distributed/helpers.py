@@ -1,33 +1,43 @@
+import json
 from pathlib import Path
+from contextlib import ExitStack
 from typing import Optional, Dict
 
-from contextlib import ExitStack
-import json
 import requests
 
 
-def call_api(method: str, url: str, payload: Optional[Dict] = None,
-             headers: Dict = {'Content-Type': 'application/json'}):
-    return getattr(requests, method)(
-        url, data=json.dumps(payload), headers=headers
-    ).json()
+def invoke_requests(method: str,
+                    url: str,
+                    payload: Optional[Dict] = None,
+                    headers: Dict = {'Content-Type': 'application/json'}):
+    try:
+        response = getattr(requests, method)(
+            url, data=json.dumps(payload), headers=headers)
+        print(response.status_code)
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f'got an exception while invoking request {repr(e)}')
+        return
+
+def get_results(query: str,
+                url: str = 'http://0.0.0.0:45678/api/search',
+                method: str = 'post',
+                top_k: int = 10):
+    return invoke_requests(method=method,
+                           url=url,
+                           payload={'top_k': top_k, 'data': [query]})
 
 
-def get_results(query: str, url: str = 'http://0.0.0.0:45678/api/search', method: str = 'post', top_k: int = 10):
-    return call_api(
-        method=method,
-        url=url,
-        payload={'top_k': top_k, 'data': [query]},
-    )
-
-
-def send_flow(flow_yaml: str, pod_dir: Optional[str] = None, url: str = 'http://localhost:8000/v1/flow/yaml'):
+def create_flow(flow_yaml: str,
+                pod_dir: Optional[str] = None,
+                url: str = 'http://localhost:8000/v1/flow/yaml'):
     with ExitStack() as file_stack:
         pymodules_files = []
         uses_files = []
         if pod_dir is not None:
             uses_files = [
-                ('uses_files', file_stack.enter_context(open(file_path))) for file_path in Path(pod_dir).glob('*.yml')
+                ('uses_files', file_stack.enter_context(open(file_path)))
+                for file_path in Path(pod_dir).glob('*.yml')
             ]
             pymodules_files = [
                 ('pymodules_files', file_stack.enter_context(open(file_path)))
@@ -39,6 +49,9 @@ def send_flow(flow_yaml: str, pod_dir: Optional[str] = None, url: str = 'http://
             *pymodules_files,
             ('yamlspec', file_stack.enter_context(open(flow_yaml))),
         ]
-        ret = requests.put(url, files=files).json()
-
-    return ret
+        print(f'files are {files}')
+        response = requests.put(url, files=files)
+        print('Checking if the flow creation succeeded -- ')
+        print(response.text)
+        assert response.status_code == 200
+        return response.json()
