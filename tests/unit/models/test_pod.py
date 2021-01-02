@@ -1,6 +1,4 @@
-import pytest
-
-from jinad.models.pod import PodModel
+from jinad.models import PodModel
 
 
 def test_no_exceptions():

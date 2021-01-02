@@ -1,6 +1,4 @@
-import pytest
-
-from jinad.models.pea import PeaModel
+from jinad.models import PeaModel
 
 
 def test_no_exceptions():

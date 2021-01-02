@@ -2,7 +2,7 @@ import uuid
 import pytest
 from fastapi import UploadFile
 
-from api.endpoints import pea
+from jinad.api.endpoints import pea
 
 _temp_id = uuid.uuid1()
 

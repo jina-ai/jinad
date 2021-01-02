@@ -1,7 +1,7 @@
 import uuid
 import pytest
 
-from api.endpoints import pod
+from jinad.api.endpoints import pod
 
 _temp_id = uuid.uuid1()
 
@@ -15,36 +15,9 @@ def mock_key_error(**kwargs):
 
 
 @pytest.mark.asyncio
-async def test_create_independent_success(monkeypatch):
-    monkeypatch.setattr(pod.pod_store, '_create', lambda **args: _temp_id)
-    response = await pod._create_independent(pod.PodModel())
-    assert response['status_code'] == 200
-    assert response['pod_id'] == _temp_id
-    assert response['status'] == 'started'
-
-
-@pytest.mark.asyncio
-async def test_create_independent_pod_start_exception(monkeypatch):
-    monkeypatch.setattr(pod.pod_store, '_create', mock_pod_start_exception)
-    with pytest.raises(pod.HTTPException) as response:
-        await pod._create_independent(pod.PodModel())
-    assert response.value.status_code == 404
-    assert 'Pod couldn\'t get started' in response.value.detail
-
-
-@pytest.mark.asyncio
-async def test_create_independent_any_exception(monkeypatch):
-    monkeypatch.setattr(pod.pod_store, '_create', mock_key_error)
-    with pytest.raises(pod.HTTPException) as response:
-        await pod._create_independent(pod.PodModel())
-    assert response.value.status_code == 404
-    assert response.value.detail == 'Something went wrong'
-
-
-@pytest.mark.asyncio
 async def test_create_via_flow_success(monkeypatch):
     monkeypatch.setattr(pod.pod_store, '_create', lambda **args: _temp_id)
-    monkeypatch.setattr(pod, 'flowpod_to_namespace', lambda **args: {})
+    monkeypatch.setattr(pod, 'pod_to_namespace', lambda **args: {})
     response = await pod._create_via_flow({})
     assert response['status_code'] == 200
     assert response['pod_id'] == _temp_id
@@ -54,7 +27,7 @@ async def test_create_via_flow_success(monkeypatch):
 @pytest.mark.asyncio
 async def test_create_via_flow_pod_start_exception(monkeypatch):
     monkeypatch.setattr(pod.pod_store, '_create', mock_pod_start_exception)
-    monkeypatch.setattr(pod, 'flowpod_to_namespace', lambda **args: {})
+    monkeypatch.setattr(pod, 'pod_to_namespace', lambda **args: {})
     with pytest.raises(pod.HTTPException) as response:
         await pod._create_via_flow({})
     assert response.value.status_code == 404
@@ -64,7 +37,7 @@ async def test_create_via_flow_pod_start_exception(monkeypatch):
 @pytest.mark.asyncio
 async def test_create_via_flow_any_exception(monkeypatch):
     monkeypatch.setattr(pod.pod_store, '_create', mock_key_error)
-    monkeypatch.setattr(pod, 'flowpod_to_namespace', lambda **args: {})
+    monkeypatch.setattr(pod, 'pod_to_namespace', lambda **args: {})
     with pytest.raises(pod.HTTPException) as response:
         await pod._create_via_flow({})
     assert response.value.status_code == 404

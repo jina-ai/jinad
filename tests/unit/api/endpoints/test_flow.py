@@ -2,7 +2,7 @@ import uuid
 import pytest
 from fastapi import UploadFile
 
-from api.endpoints import flow
+from jinad.api.endpoints import flow
 
 _temp_id = uuid.uuid1()
 

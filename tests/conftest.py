@@ -44,7 +44,6 @@ def flow_endpoints():
 def pod_endpoints():
     return [
         ('_upload', f'{PREFIX}/upload'),
-        ('_create_independent', f'{PREFIX}/pod/cli'),
         ('_create_via_flow', f'{PREFIX}/pod/flow'),
         ('_delete', f'{PREFIX}/pod')
     ]
