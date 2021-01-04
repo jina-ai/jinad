@@ -19,7 +19,7 @@ def test_flow(docker_compose):
                         url='http://0.0.0.0:45678/api/search',
                         payload={'top_k': 10, 'data': ['text:cats rulessss']})
     assert r is not None
-    text_indexed = ['search']['docs'][0]['text']
+    text_indexed = r['search']['docs'][0]['text']
     print(f'Got response text_indexed: {text_indexed}')
     assert text_indexed == 'text:cats rulessss'
 
