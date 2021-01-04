@@ -53,9 +53,10 @@ def get_pydantic_fields(config: Union[dict, argparse.ArgumentParser]):
                                   description=arg['help'])
             all_options[arg_key] = (arg_type, current_field)
 
+    # TODO(Deepankar): possible refactoring to `jina.api_to_dict()`
     if isinstance(config, argparse.ArgumentParser):
         # Ignoring first 3 as they're generic args
-        from jina.parser import KVAppendAction
+        from jina.parsers.helper import KVAppendAction
         for arg in config._actions[3:]:
             arg_key = arg.dest
             arg_type = arg.type
@@ -90,7 +91,8 @@ def build_pydantic_model(kind: str = 'local',
         all_fields, field_validators = get_pydantic_fields(config=module_args)
 
     elif kind == 'local':
-        from jina.parser import set_pea_parser, set_pod_parser, set_flow_parser
+        from jina.parsers import set_pea_parser, set_pod_parser
+        from jina.parsers.flow import set_flow_parser
         if module == 'pod':
             parser = set_pod_parser()
         elif module == 'pea':

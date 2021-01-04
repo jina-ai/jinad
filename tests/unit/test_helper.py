@@ -1,9 +1,10 @@
 import pytest
-from jina.enums import BetterEnum
+from jina import __default_host__
+from jina.enums import BetterEnum, RuntimeBackendType, PeaRoleType
 from argparse import ArgumentParser
 
-from jinad.helper import get_enum_defaults, handle_enums, flowpod_to_namespace, basepod_to_namespace, PodModel, \
-    basepea_to_namespace, PeaModel
+from jinad.helper import get_enum_defaults, handle_enums, pod_to_namespace, pea_to_namespace
+from jinad.models import PeaModel, SinglePodModel, ParallelPodModel
 
 
 class SampleEnum(BetterEnum):
@@ -36,64 +37,129 @@ def test_handle_enums():
         handle_enums(args, parser)
 
 
-def test_flowpod_to_namespace():
-    pod_dict = {
-        'head': {
-            'uses': '_route',
-            'parallel': 1
-        },
-        'tail': {
-            'uses': '_reduce',
-            'parallel': 1
-        },
-        'peas': [{
-            'uses': 'Encoder',
-            'pea_id': 1
-        },
-            {
-                'uses': 'Indexer',
-                'pea_id': 2
-            },
-        ]
-    }
-
-    pod_args = flowpod_to_namespace(pod_dict)
-
-    assert len(pod_args) == 3
-    head_args = pod_args['head']
-    assert 'log_id' in head_args
-    assert head_args.parallel == 1
-    assert head_args.uses == '_route'
-
-    tail_args = pod_args['tail']
-    assert 'log_id' in tail_args
-    assert tail_args.parallel == 1
-    assert tail_args.uses == '_reduce'
-
-    assert len(pod_args['peas']) == 2
-    pea_1 = pod_args['peas'][0]
-    assert 'log_id' in pea_1
-    assert pea_1.uses == 'Encoder'
-    assert pea_1.pea_id == 1
-
-    pea_2 = pod_args['peas'][1]
-    assert 'log_id' in pea_2
-    assert pea_2.uses == 'Indexer'
-    assert pea_2.pea_id == 2
-
-
-def test_basepod_to_namespace():
-    pod_args = basepod_to_namespace(PodModel())
+def test_single_pod_to_namespace():
+    pod_args = pod_to_namespace(
+        SinglePodModel(
+            name='mypod',
+            pea_role=3,
+            runtime_backend=0,
+            log_config='blah',
+            host='3.19.298.2'
+        )
+    )
     assert 'identity' in pod_args
     assert 'port_expose' in pod_args
     assert 'uses' in pod_args
     assert 'parallel' in pod_args
 
+    assert 'name' in pod_args
+    assert pod_args.name == 'mypod'
 
-def test_basepea_to_namespace():
-    pea_args = basepea_to_namespace(PeaModel())
+    assert 'pea_role' in pod_args
+    # This tests number to enum conversion
+    assert pod_args.pea_role == PeaRoleType.PARALLEL
+
+    assert 'runtime_backend' in pod_args
+    # This tests number to enum conversion
+    assert pod_args.runtime_backend == RuntimeBackendType.THREAD
+
+    assert 'log_config' in pod_args
+    # we explicitly remove log_config
+    assert pod_args.log_config != 'blah'
+
+    assert 'host' in pod_args
+    # we explicitly set host to __default_host__
+    assert pod_args.host == __default_host__
+
+
+def test_parallel_pod_to_namespace():
+    pod_args = pod_to_namespace(
+        ParallelPodModel(
+            head=SinglePodModel(),
+            tail=SinglePodModel(),
+            peas=[
+                SinglePodModel(
+                    name='pod0',
+                    host='3.19.298.2',
+                    log_config='blah0'
+                ),
+                SinglePodModel(
+                    name='pod1',
+                    host='3.19.298.2',
+                    log_config='blah1'
+                )
+            ]
+        )
+    )
+    assert 'identity' in pod_args['head']
+    assert 'identity' in pod_args['tail']
+    assert 'identity' in pod_args['peas'][0]
+    assert 'identity' in pod_args['peas'][1]
+
+    assert 'port_expose' in pod_args['head']
+    assert 'port_expose' in pod_args['tail']
+    assert 'port_expose' in pod_args['peas'][0]
+    assert 'port_expose' in pod_args['peas'][1]
+
+    assert 'name' in pod_args['peas'][0]
+    assert pod_args['peas'][0].name == 'pod0'
+
+    assert 'name' in pod_args['peas'][1]
+    assert pod_args['peas'][1].name == 'pod1'
+
+    assert 'host' in pod_args['peas'][0]
+    # we explicitly set host to __default_host__
+    assert pod_args['peas'][0].host == __default_host__
+
+    assert 'host' in pod_args['peas'][1]
+    # we explicitly set host to __default_host__
+    assert pod_args['peas'][1].host == __default_host__
+
+    assert 'log_config' in pod_args['peas'][0]
+    # we explicitly remove log_config
+    assert pod_args['peas'][0].log_config != 'blah0'
+
+    assert 'log_config' in pod_args['peas'][1]
+    # we explicitly remove log_config
+    assert pod_args['peas'][1].log_config != 'blah1'
+
+
+def test_pea_to_namespace():
+    pea_args = pea_to_namespace(
+        PeaModel(
+            name='mypea',
+            py_modules='abc.py',
+            runtime_cls='RESTRuntime',
+            show_exc_info=True,
+            pea_role=2,
+            log_config='blah'
+        )
+    )
     assert 'identity' in pea_args
     assert 'port_expose' in pea_args
     assert 'uses' in pea_args
     assert 'py_modules' in pea_args
     assert 'parallel' not in pea_args
+
+    assert 'name' in pea_args
+    assert pea_args.name == 'mypea'
+
+    assert 'py_modules' in pea_args
+    assert pea_args.py_modules == 'abc.py'
+
+    assert 'runtime_cls' in pea_args
+    assert pea_args.runtime_cls == 'RESTRuntime'
+
+    assert 'show_exc_info' in pea_args
+    assert pea_args.show_exc_info
+
+    assert 'pea_role' in pea_args
+    assert pea_args.pea_role == PeaRoleType.TAIL
+
+    assert 'log_config' in pea_args
+    # we explicitly remove log_config
+    assert pea_args.log_config != 'blah'
+
+    assert 'host' in pea_args
+    # we explicitly set host to __default_host__
+    assert pea_args.host == __default_host__

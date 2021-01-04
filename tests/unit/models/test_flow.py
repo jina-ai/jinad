@@ -1,6 +1,4 @@
-import pytest
-
-from jinad.models.flow import FlowModel
+from jinad.models import FlowModel
 
 
 def test_no_exceptions():

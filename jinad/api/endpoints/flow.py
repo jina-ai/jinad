@@ -3,13 +3,13 @@ import uuid
 from typing import List, Union
 
 from fastapi import status, APIRouter, Body, Response, File, UploadFile
-from jina.parser import set_client_cli_parser
+from jina.parsers import set_client_cli_parser
 from jina.helper import ArgNamespace
 from jina.logging import JinaLogger
 from jina.clients import Client
 
 from jinad.store import flow_store
-from jinad.models.pod import PodModel
+from jinad.models import SinglePodModel
 from jinad.excepts import FlowYamlParseException, FlowCreationException, FlowStartException, \
     HTTPException
 
@@ -22,8 +22,8 @@ router = APIRouter()
     summary='Build & start a Flow using Pods',
 )
 async def _create_from_pods(
-    pods: Union[List[PodModel]] = Body(...,
-                                       example=json.loads(PodModel().json()))
+    pods: Union[List[SinglePodModel]] = Body(...,
+                                             example=json.loads(SinglePodModel().json()))
 ):
     """
     Build a Flow using a list of `PodModel`

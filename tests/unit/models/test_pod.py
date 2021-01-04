@@ -1,11 +1,17 @@
-import pytest
-
-from jinad.models.pod import PodModel
+from jinad.models import SinglePodModel, ParallelPodModel
 
 
-def test_no_exceptions():
-    PodModel()
+def test_single_no_exceptions():
+    SinglePodModel()
     # this gets executed while verifying inputs
-    PodModel().dict()
+    SinglePodModel().dict()
     # this gets executed while creating docs
-    PodModel().schema()
+    SinglePodModel().schema()
+
+
+def test_parallel_no_exceptions():
+    ParallelPodModel()
+    # this gets executed while verifying inputs
+    ParallelPodModel().dict()
+    # this gets executed while creating docs
+    ParallelPodModel().schema()
