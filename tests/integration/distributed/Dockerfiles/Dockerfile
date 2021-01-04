@@ -3,7 +3,7 @@ FROM python:3.7.6-slim
 ARG JINAD_PORT=8000
 
 ENV JINAD_PORT ${JINAD_PORT}
-
+ENV JINAVER jina@git+https://github.com/jina-ai/jina.git@jinad-send-complete-path
 WORKDIR /jinad/
 
 ADD setup.py README.md requirements.txt Dockerfiles/entrypoint.sh ./

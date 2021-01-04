@@ -1,4 +1,3 @@
-from jina.excepts import PeaFailToStart, GRPCServerError
 from fastapi.exceptions import HTTPException
 
 

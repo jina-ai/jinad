@@ -1,6 +1,8 @@
 import os
 
 import pytest
+
+from jina import Document
 from jina.flow import Flow
 
 cur_dir = os.path.dirname(os.path.abspath(__file__))
@@ -21,7 +23,12 @@ def test_flow(docker_compose, mocker):
     os.environ['JINA_ENCODER_HOST'] = '172.28.1.1'
     os.environ['JINA_INDEXER_HOST'] = '172.28.1.2'
 
+    with Document() as doc:
+        doc.content = text
+
     with Flow.load_config(flow_yml) as f:
-        f.index_lines([text], on_done=validate_output)
+        print(f' FLOW BUILT HERE')
+        print(f' {f.args}')
+        f.index([doc], on_done=validate_output)
 
     m.assert_called_once()

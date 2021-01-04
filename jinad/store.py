@@ -5,21 +5,23 @@ from typing import List, Dict, Union
 from argparse import Namespace
 
 from fastapi import UploadFile
+from jina import __default_host__
 from jina.flow import Flow
 from jina.jaml import JAML
 from jina.helper import colored, get_random_identity
 from jina.logging import JinaLogger
-from jina.peapods import Runtime, Pod
+from jina.peapods import Pea, Pod
 
-from jinad.models.pod import PodModel
+from jinad.models import SinglePodModel
 from jinad.helper import create_meta_files_from_upload, delete_meta_files_from_upload
-from jinad.excepts import PeaFailToStart, FlowYamlParseException, FlowCreationException, \
+from jinad.excepts import FlowYamlParseException, FlowCreationException, \
     FlowStartException, PodStartException, PeaStartException, FlowBadInputException
 
 
 class InMemoryStore:
     _store = {}
-    # TODO: Implement fastapi based oauth/bearer security here
+    # TODO(Deepankar): Implement fastapi based oauth/bearer security here
+    # https://github.com/jina-ai/jinad/issues/4
     credentials = 'foo:bar'
     _session_token = None
     logger = JinaLogger(context='🏪 STORE')
@@ -65,7 +67,7 @@ class InMemoryStore:
 class InMemoryFlowStore(InMemoryStore):
 
     def _create(self,
-                config: Union[str, SpooledTemporaryFile, List[PodModel]] = None,
+                config: Union[str, SpooledTemporaryFile, List[SinglePodModel]] = None,
                 files: List[UploadFile] = None):
         """ Creates Flow using List[PodModel] or yaml spec """
         # This makes sure `uses` & `py_modules` are created locally in `cwd`
@@ -74,7 +76,6 @@ class InMemoryFlowStore(InMemoryStore):
             [create_meta_files_from_upload(current_file) for current_file in files]
 
         # FastAPI treats UploadFile as a tempfile.SpooledTemporaryFile
-        # I think this needs to be handled by some `FlowBuilder` class, transfrom a yaml_load to a config
         if isinstance(config, str) or isinstance(config, SpooledTemporaryFile):
             yamlspec = config.read().decode() if isinstance(config, SpooledTemporaryFile) else config
             try:
@@ -85,10 +86,9 @@ class InMemoryFlowStore(InMemoryStore):
                 raise FlowYamlParseException
         elif isinstance(config, list):
             try:
-                flow = Flow()
-                # it is strange to build from a given flow, it seems like a lazy construction pattern could be used?
-                flow = self._build_with_pods(flow=flow,
-                                             pod_args=config)
+                flow = self._build_with_pods(pod_args=config)
+                with flow:
+                    pass
             except Exception as e:
                 self.logger.error(f'Got error while creating flows via pods: {repr(e)}')
                 raise FlowCreationException
@@ -99,11 +99,6 @@ class InMemoryFlowStore(InMemoryStore):
             flow.args.log_id = flow.args.identity if 'identity' in flow.args else get_random_identity()
             flow_id = uuid.UUID(flow.args.log_id)
             flow = self._start(context=flow)
-        except PeaFailToStart as e:
-            self.logger.critical(f'Flow couldn\'t get started - Invalid Pod {repr(e)} ')
-            self.logger.critical('Possible causes - invalid/not uploaded pod yamls & pymodules')
-            # TODO: Send correct error message
-            raise FlowStartException(repr(e))
         except Exception as e:
             self.logger.critical(f'Got following error while starting the flow: {repr(e)}')
             raise FlowStartException(repr(e))
@@ -115,9 +110,9 @@ class InMemoryFlowStore(InMemoryStore):
         return flow_id, flow.host, flow.port_expose
 
     def _build_with_pods(self,
-                         flow: Flow,
-                         pod_args: List[PodModel]):
+                         pod_args: List[SinglePodModel]):
         """ Since we rely on PodModel, this can accept all params that a Pod can accept """
+        flow = Flow()
         for current_pod_args in pod_args:
             _current_pod_args = current_pod_args.dict()
             _current_pod_args.pop('log_config')
@@ -133,8 +128,7 @@ class InMemoryFlowStore(InMemoryStore):
 
         if 'flow' in self._store[flow_id]:
             flow = self._store[flow_id]['flow']
-
-        return flow.host, flow.port_expose, flow.yaml_spec
+            return flow.host, flow.port_expose, flow.yaml_spec
 
     def _delete(self, flow_id: uuid.UUID):
         """ Closes a Flow context & deletes from store """
@@ -161,7 +155,7 @@ class InMemoryPodStore(InMemoryStore):
             pod_id = uuid.UUID(pod_arguments.log_id) if isinstance(pod_arguments, Namespace) \
                 else uuid.UUID(pod_arguments['peas'][0].log_id)
 
-            pod = Pod(args=pod_arguments, allow_remote=False)
+            pod = Pod(pod_arguments)
             pod = self._start(context=pod)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pod: {repr(e)}')
@@ -196,7 +190,7 @@ class InMemoryPeaStore(InMemoryStore):
         try:
             pea_id = uuid.UUID(pea_arguments.log_id) if isinstance(pea_arguments, Namespace) \
                 else uuid.UUID(pea_arguments['log_id'])
-            pea = Runtime(args=pea_arguments, allow_remote=False)
+            pea = Pea(pea_arguments)
             pea = self._start(context=pea)
         except Exception as e:
             self.logger.critical(f'Got following error while starting the pea: {repr(e)}')
