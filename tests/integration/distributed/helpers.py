@@ -13,7 +13,6 @@ def invoke_requests(method: str,
     try:
         response = getattr(requests, method)(
             url, data=json.dumps(payload), headers=headers)
-        print(response.status_code)
         return response.json()
     except requests.exceptions.RequestException as e:
         print(f'got an exception while invoking request {repr(e)}')
@@ -49,9 +48,7 @@ def create_flow(flow_yaml: str,
             *pymodules_files,
             ('yamlspec', file_stack.enter_context(open(flow_yaml))),
         ]
-        print(f'files are {files}')
         response = requests.put(url, files=files)
         print('Checking if the flow creation succeeded -- ')
-        print(response.text)
         assert response.status_code == 200
         return response.json()

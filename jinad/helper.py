@@ -45,6 +45,10 @@ def handle_remote_host(args: Dict):
     if 'host' in args:
         args['host'] = __default_host__
 
+def handle_remote_runtime(args: Dict):
+    if 'runtime_cls' in args and args['runtime_cls'] == 'JinadRuntime':
+        args['runtime_cls'] = 'ZEDRuntime'
+
 
 def pod_to_namespace(args: Union[SinglePodModel, ParallelPodModel]):
     from jina.parsers import set_pod_parser
@@ -64,6 +68,7 @@ def pod_to_namespace(args: Union[SinglePodModel, ParallelPodModel]):
                                         parser=parser)
                 handle_log_id(args=pea_args)
                 handle_remote_host(args=pea_args)
+                handle_remote_runtime(args=pea_args)
                 pod_args[pea_type] = argparse.Namespace(**pea_args)
 
             # this is for pea_type: peas (multiple entries)
@@ -74,6 +79,7 @@ def pod_to_namespace(args: Union[SinglePodModel, ParallelPodModel]):
                                                    parser=parser)
                     handle_log_id(args=current_pea_arg)
                     handle_remote_host(args=current_pea_arg)
+                    handle_remote_runtime(args=pea_args)
                     pod_args[pea_type].append(argparse.Namespace(**current_pea_arg))
 
         return pod_args
@@ -83,6 +89,7 @@ def pod_to_namespace(args: Union[SinglePodModel, ParallelPodModel]):
         pod_args = handle_enums(args=args, parser=parser)
         handle_log_id(args=pod_args)
         handle_remote_host(args=pod_args)
+        handle_remote_runtime(args=pod_args)
         return argparse.Namespace(**pod_args)
 
 
