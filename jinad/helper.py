@@ -50,6 +50,14 @@ def handle_remote_runtime(args: Dict):
         args['runtime_cls'] = 'ZEDRuntime'
 
 
+def handle_remote_args(args: Dict, parser):
+    _args = handle_enums(args=args, parser=parser)
+    handle_log_id(args=_args)
+    handle_remote_host(args=_args)
+    handle_remote_runtime(args=_args)
+    return _args
+
+
 def pod_to_namespace(args: Union[SinglePodModel, ParallelPodModel]):
     from jina.parsers import set_pod_parser
     parser = set_pod_parser()
@@ -64,32 +72,23 @@ def pod_to_namespace(args: Union[SinglePodModel, ParallelPodModel]):
 
             # this is for pea_type: head & tail when not None (pod with parallel > 1)
             if isinstance(pea_args, Dict):
-                pea_args = handle_enums(args=pea_args,
-                                        parser=parser)
-                handle_log_id(args=pea_args)
-                handle_remote_host(args=pea_args)
-                handle_remote_runtime(args=pea_args)
+                pea_args = handle_remote_args(args=pea_args,
+                                              parser=parser)
                 pod_args[pea_type] = argparse.Namespace(**pea_args)
 
             # this is for pea_type: peas (multiple entries)
             if isinstance(pea_args, List):
                 pod_args[pea_type] = []
                 for current_pea_arg in pea_args:
-                    current_pea_arg = handle_enums(args=current_pea_arg,
-                                                   parser=parser)
-                    handle_log_id(args=current_pea_arg)
-                    handle_remote_host(args=current_pea_arg)
-                    handle_remote_runtime(args=pea_args)
+                    current_pea_arg = handle_remote_args(args=current_pea_arg,
+                                                         parser=parser)
                     pod_args[pea_type].append(argparse.Namespace(**current_pea_arg))
 
         return pod_args
 
     if isinstance(args, SinglePodModel):
-        args = args.dict()
-        pod_args = handle_enums(args=args, parser=parser)
-        handle_log_id(args=pod_args)
-        handle_remote_host(args=pod_args)
-        handle_remote_runtime(args=pod_args)
+        pod_args = handle_remote_args(args=args.dict(),
+                                      parser=parser)
         return argparse.Namespace(**pod_args)
 
 
