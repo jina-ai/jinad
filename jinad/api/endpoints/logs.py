@@ -35,6 +35,26 @@ async def tail(file_handler, line_num_from=0, timeout=5):
 
 
 class LogStreamingEndpoint(WebSocketEndpoint):
+    """
+    WebSocket based streaming for FluentD logs written by remote Peas/Pods/Flows.
+
+    - URL - ws://{server}:{port}/logstream/{log_id}/?timeout={timeout}
+    - Mandatory param - {log_id} (If a folder with {log__id} doesn't exist, it disconnects the client with code = 1006)
+    - Optional param - {timeout} (Defaults to DEFAULT_TIMEOUT)
+
+    Server
+        1. Waits for the client to send a json `{'from': line_number}`.
+        2. Tails file & streams one log line at a time in a loop.
+        3. Waits max `timeout` secs b/w 2 suucessive log lines.
+        4. In case of timeout, sends {'code': TIMEOUT_ERROR_CODE} & waits step 1.
+
+    Client
+        1. Connects to the server & send a json `{'from': 0}`.
+        2. Reads & processes streamed logs e.g. - `await websocket.receive()` in a loop.
+        3. Wait for a message {'code': TIMEOUT_ERROR_CODE} indicating timeout.
+        4. Goes back to step 1 if client still expects logs.
+
+    """
 
     encoding = 'json'
     DEFAULT_TIMEOUT = 5
