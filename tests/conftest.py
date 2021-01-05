@@ -25,7 +25,7 @@ def common_endpoints():
         ('swagger_ui_redirect', '/docs/oauth2-redirect'),
         ('redoc_html', '/redoc'),
         ('_status', f'{PREFIX}/alive'),
-        ('_websocket_logs', f'{PREFIX}/wslog/{{log_id}}')
+        ('LogStreamingEndpoint', f'{PREFIX}/logstream/{{log_id}}')
     ]
 
 
