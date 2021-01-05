@@ -10,7 +10,6 @@ flow_yml = os.path.join(cur_dir, 'flow.yml')
 pod_dir = os.path.join(cur_dir, 'pods')
 
 
-@pytest.mark.skip('(Deepankar) Skipping temporarily')
 @pytest.mark.parametrize('docker_compose', [compose_yml], indirect=['docker_compose'])
 def test_flow(docker_compose):
     flow_id = create_flow(flow_yml, pod_dir)['flow_id']
@@ -43,10 +42,6 @@ def test_flow(docker_compose):
     print(f'Flow created with id {flow_id}')
 
     texts_matched = get_results(query='text:anything will match the same')
-    print(f'texts_matched is {texts_matched}')
-
-    # Because of the below error, we are getting a KeyError while accessing 'matches'
-    # TypeError: zip argument #2 must support iteration
     assert len(texts_matched['search']['docs'][0]['matches']) == 10
 
     r = invoke_requests(method='get',
