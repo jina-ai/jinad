@@ -1,19 +1,21 @@
-import uuid
 import time
-import json
 import asyncio
 from pathlib import Path
-from typing import Optional
+from typing import Any
+from urllib.parse import parse_qsl
 
 from jina.logging import JinaLogger
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket
+from starlette.endpoints import WebSocketEndpoint
+from starlette.types import Receive, Scope, Send
 
 from jinad.config import log_config
-from jinad.excepts import HTTPException, TimeoutException, ClientExit
+from jinad.excepts import NoSuchFileException
 
 
 logger = JinaLogger(context='👻 LOGS')
 router = APIRouter()
+
 
 async def tail(file_handler, line_num_from=0, timeout=5):
     """ asynchronous tail file """
@@ -28,60 +30,82 @@ async def tail(file_handler, line_num_from=0, timeout=5):
             last_log_time = time.time()
             await asyncio.sleep(0.01)
     else:
-        raise TimeoutException()
+        logger.debug(f'File tailer timed-out!')
+        yield None, None
 
 
-@router.websocket(
-    path='/wslog/{log_id}'
-)
-async def _websocket_logs(
-    websocket: WebSocket,
-    log_id: uuid.UUID,
-    timeout: Optional[int] = 5,
-    exit_text: Optional[str] = 'exit'
-):
+class LogStreamingEndpoint(WebSocketEndpoint):
     """
-    # TODO: Swagger doesn't support websocket based docs
-    Websocket endpoint to stream logs from fluentd file
+    WebSocket based streaming for FluentD logs written by remote Peas/Pods/Flows.
 
-    ```
-    `log_id`: uuid of the flow/pod/pea
-    `timeout`: max time difference b/w successive log lines (helps in client disconnection)
-    `exit_text`: exit the connection if this text is found in the message
-    ```
+    - URL - ws://{server}:{port}/logstream/{log_id}/?timeout={timeout}
+    - Mandatory param - {log_id} (If a folder with {log__id} doesn't exist, it disconnects the client with code = 1006)
+    - Optional param - {timeout} (Defaults to DEFAULT_TIMEOUT)
+
+    Server
+        1. Waits for the client to send a json `{'from': line_number}`.
+        2. Tails file & streams one log line at a time in a loop.
+        3. Waits max `timeout` secs b/w 2 suucessive log lines.
+        4. In case of timeout, sends {'code': TIMEOUT_ERROR_CODE} & waits step 1.
+
+    Client
+        1. Connects to the server & send a json `{'from': 0}`.
+        2. Reads & processes streamed logs e.g. - `await websocket.receive()` in a loop.
+        3. Wait for a message {'code': TIMEOUT_ERROR_CODE} indicating timeout.
+        4. Goes back to step 1 if client still expects logs.
+
     """
-    file_path = log_config.PATH % log_id
-    if not Path(file_path).is_file():
-        raise HTTPException(status_code=404,
-                            detail=f'No logs found')
 
-    await websocket.accept()
-    client_host = websocket.client.host
-    client_port = websocket.client.port
-    logger.info(f'Client {client_host}:{client_port} got connected!')
-    data = await websocket.receive_json()
-    logger.debug(f'received the first message: {data}')
-    line_num_from = int(data.get('from', 0))
-    logs_to_be_sent = {}
+    encoding = 'json'
+    DEFAULT_TIMEOUT = 5
+    TIMEOUT_ERROR_CODE = 4000
+    NO_FILE_ERROR_CODE = 4001
 
-    try:
-        with open(file_path) as fp:
-            async for line_number, line in tail(file_handler=fp, timeout=timeout):
-                if line_number > line_num_from:
-                    logs_to_be_sent[line_number] = line
-                    logger.info(f'Sending logs {logs_to_be_sent}')
-                    await websocket.send_text(json.dumps(logs_to_be_sent))
-                    data = await websocket.receive_json()
-                    if exit_text in data:
-                        raise ClientExit
-                    logs_to_be_sent = {}
-    except WebSocketDisconnect:
-        logger.info(f'Client {client_host}:{client_port} got disconnected!')
-    except TimeoutException:
-        await websocket.close()
-        logger.info(f'No logs found in last {timeout} secs. Timing out!')
-        logger.info(f'Closing client {client_host}:{client_port}!')
-    except ClientExit:
-        await websocket.close()
-        logger.info('Client asked to exit!')
-        logger.info(f'Closing client {client_host}:{client_port}!')
+    def __init__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        super().__init__(scope, receive, send)
+
+        # Accessing path / query params from scope in ASGI
+        # https://asgi.readthedocs.io/en/latest/specs/www.html#websocket-connection-scope
+        self.log_id = self.scope.get('path').split('/')[-1]
+        self.filepath = log_config.PATH % self.log_id
+        query_string = self.scope.get('query_string').decode()
+        self.timeout = float(dict(parse_qsl(query_string)).get('timeout', self.DEFAULT_TIMEOUT))
+
+        self.active_clients = []
+
+    async def on_connect(self, websocket: WebSocket) -> None:
+        await websocket.accept()
+        # FastAPI & Starlette still don't have a generic WebSocketException
+        # https://github.com/encode/starlette/pull/527
+        # The following `raise` raises `websockets.exceptions.ConnectionClosedError` (code = 1006)
+        # TODO(Deepankar): This needs better handling.
+        if not Path(self.filepath).is_file():
+            raise NoSuchFileException(f'File {self.filepath} not found locally')
+
+        self.active_clients.append(websocket)
+        self.client_details = f'{websocket.client.host}:{websocket.client.port}'
+        logger.info(f'Client {self.client_details} got connected to stream Fluentd logs!')
+
+    async def on_receive(self, websocket: WebSocket, data: Any) -> None:
+        if not Path(self.filepath).is_file():
+            raise NoSuchFileException(f'File {self.filepath} not found locally')
+
+        line_num_from = int(data.get('from', 0))
+        with open(self.filepath) as fp:
+            logs_to_be_sent = {}
+            async for line_number, line in tail(file_handler=fp, line_num_from=line_num_from, timeout=self.timeout):
+                if not line_number:
+                    await websocket.send_json({"code": self.TIMEOUT_ERROR_CODE})
+                    break
+                logs_to_be_sent[line_number] = line
+                logger.info(f'Sending logs {logs_to_be_sent}')
+                await websocket.send_json(logs_to_be_sent)
+                logs_to_be_sent = {}
+
+    async def on_disconnect(self, websocket: WebSocket, close_code: int) -> None:
+        self.active_clients.remove(websocket)
+        logger.info(f'Client {self.client_details} got disconnected!')
+
+
+router.add_websocket_route(path='/logstream/{log_id}',
+                           endpoint=LogStreamingEndpoint)
