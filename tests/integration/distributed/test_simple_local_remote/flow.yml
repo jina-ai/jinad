@@ -11,7 +11,6 @@ pods:
     uses: encode.yml
     host: $JINA_ENCODER_HOST
     port_in: 45000
-    port_out: 45001
     port_ctrl: 45002
     port_expose: 8000
   indexer:

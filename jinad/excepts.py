@@ -1,4 +1,5 @@
 from fastapi.exceptions import HTTPException
+from websockets.exceptions import WebSocketException
 
 
 class FlowYamlParseException(Exception):
@@ -25,9 +26,5 @@ class PeaStartException(Exception):
     """ Exception during pod start """
 
 
-class TimeoutException(Exception):
-    """ Exception to raise for successive log line timeout """
-
-
-class ClientExit(Exception):
-    """ Exception for websocket client closure """
+class NoSuchFileException(WebSocketException):
+    """ Exception during log streaming if no file is found """
